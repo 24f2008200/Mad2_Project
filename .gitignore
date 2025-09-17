@@ -1,0 +1,11 @@
+# Global ignores
+*.pyc
+__pycache__/
+*.ini
+*.log
+*.sqlite3
+*.db
+.DS_Store
+.env
+venv/
+node_modules/
