@@ -1,0 +1,9 @@
+{
+    "commands": [
+        {
+            "match": ".*",
+            "cmd": "bash ${workspaceFolder}/start_project.sh",
+            "runIn": "terminal"
+        }
+    ]
+}

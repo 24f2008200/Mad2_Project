@@ -1,0 +1,89 @@
+Git Bash / WSL, start_project.ps1 for PowerShell) that do everything when you open a new project folder:
+
+Detect/create local venv
+
+Activate it
+
+Install requirements.txt if needed
+
+Start Flask server
+
+Start Vue dev server (if frontend/ exists)
+
+Ready for debugging in VSCode
+
+This ensures one command sets up a completely self-contained environment for any new project.
+
+1️⃣ Git Bash / WSL: start_project.sh
+
+Usage:
+
+cd /path/to/project
+bash start_project.sh
+
+2️⃣ PowerShell: start_project.ps1
+
+Usage:
+
+cd C:\path\to\project
+.\start_project.ps1
+
+
+⚠️ If blocked:
+
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+
+3️⃣ VSCode Configuration
+
+.vscode/settings.json (copy into each project):
+
+{
+    "python.pythonPath": "${workspaceFolder}/venv/Scripts/python.exe",
+    "python.terminal.activateEnvironment": true,
+    "terminal.integrated.inheritEnv": true,
+    "terminal.integrated.defaultProfile.windows": "Git Bash",
+    "editor.formatOnSave": true
+}
+
+
+.vscode/launch.json:
+
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Flask Debug",
+            "type": "python",
+            "request": "launch",
+            "python": "${workspaceFolder}/venv/Scripts/python.exe",
+            "module": "flask",
+            "env": {
+                "FLASK_APP": "backend/app.py",
+                "FLASK_ENV": "development"
+            },
+            "args": ["run", "--no-debugger", "--no-reload"],
+            "console": "integratedTerminal",
+            "jinja": true
+        }
+    ]
+}
+
+✅ How it works
+
+Open any new project folder in VSCode
+
+Open integrated terminal → run bash start_project.sh or .\start_project.ps1
+
+Automatically:
+
+Venv created/activated
+
+Dependencies installed
+
+Flask server started
+
+Vue dev server started (if frontend/)
+
+VSCode uses project-local Python, debugger works flawlessly
+
+No global conflicts. Switching projects = just open folder + run script.

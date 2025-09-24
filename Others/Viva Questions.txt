@@ -1,0 +1,72 @@
+1. What is Vue?
+Vue.js is a progressive JavaScript framework for building user interfaces. It focuses on the view layer and makes it easy to build reactive, component-based applications.
+
+2. What is a reactive framework?
+A reactive framework automatically updates the UI when the underlying data changes. It tracks dependencies between data and UI, so when data updates, only the affected parts of the UI re-render.
+
+3. What is memoization?
+Memoization is an optimization technique that stores the results of expensive function calls and returns the cached result when the same inputs occur again.
+
+4. What is a rainbow table?
+A rainbow table is a precomputed table mapping plaintext passwords to their hash values. Attackers use it to quickly reverse hashes into passwords. Modern systems use salting to mitigate this.
+
+5. What is v-cloak?
+v-cloak is a Vue directive that hides uncompiled template code (like {{ message }}) until Vue finishes rendering, preventing flicker of raw template text.
+
+6. How can you access the server without using a browser and URL?
+You can use tools like:
+
+cURL or Postman to make HTTP requests
+
+Telnet/Netcat to open raw connections
+
+SSH for remote access to the server’s shell.
+
+7. Difference between v-if and v-show?
+
+v-if: Completely removes or adds the element from the DOM. (Higher cost when toggling often, but better if condition rarely changes.)
+
+v-show: Always renders the element, but toggles its visibility using CSS (display: none). (Better when condition changes frequently.)
+
+8. Difference between memoization and caching.
+
+Memoization: Caching results of function calls based on input arguments (usually in-memory, short-term).
+
+Caching: A broader concept—storing data (responses, files, computations) for reuse (can be in-memory, disk, distributed, long-term).
+
+9. What is Celery?
+Celery is a distributed task queue system for Python. It lets you run tasks asynchronously or on schedules, often used for background jobs (emails, data processing).
+
+10. What was the default hashing algorithm in MAD1?
+You’d have to answer based on your project. If unspecified, many systems default to SHA-256 or MD5 (depending on your implementation).
+
+11. What is SHA-256? Can it be decrypted back? How many hashing algorithms do you know?
+
+SHA-256 is a cryptographic hash function that produces a 256-bit hash.
+
+It cannot be decrypted (hashing is one-way). Only brute-force or lookup attacks (rainbow tables) are possible.
+
+Common hashing algorithms: MD5, SHA-1, SHA-2 family (SHA-224, SHA-256, SHA-384, SHA-512), SHA-3, BLAKE2, Argon2, bcrypt, scrypt.
+
+12. What is AJAX?
+AJAX (Asynchronous JavaScript and XML) allows web apps to fetch/send data to a server asynchronously without refreshing the page. Usually uses XMLHttpRequest or fetch.
+
+13. Why didn’t you implement that the user can choose where to download the CSV file?
+Typically, browsers handle downloads to a default location (Downloads folder). To let users choose, you’d need a file picker (possible in desktop apps, not in standard web apps without extra prompts).
+
+14. Where did you implement caching?
+Answer depends on your project (e.g., API responses cached in Redis, or computed results memoized). Be specific about where and why you used caching.
+
+15. Improvements from MAD1 to MAD2 project (implementation & code):
+
+Better modularity (separating concerns into components/services).
+
+Improved error handling.
+
+Added security measures (e.g., stronger hashing, input validation).
+
+Enhanced performance (used caching, optimized queries).
+
+Cleaner code structure (following coding conventions, reusable functions).
+
+More features (e.g., better export handling, async jobs, user experience improvements).

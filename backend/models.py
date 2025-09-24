@@ -3,7 +3,8 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from backend.app import db
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy import select, func
+from sqlalchemy import select, func ,inspect, text
+from sqlalchemy.exc import SQLAlchemyError
 
 class SerializerMixin:
     @declared_attr
@@ -12,10 +13,18 @@ class SerializerMixin:
 
     def to_dict(self):
         """Convert SQLAlchemy model instance into dictionary (safe for JSON)."""
-        return {
-            column.name: getattr(self, column.name)
-            for column in self.__table__.columns
-        }
+        result = {}
+        for column in self.__table__.columns:
+            value = getattr(self, column.name)
+
+            if "time" in column.name.lower() and isinstance(value, datetime):
+                # Custom formatting for datetime fields with 'time' in their name
+                result[column.name] = dateFormat(value)
+            else:
+                result[column.name] = value
+
+        return result
+
 
 class User(db.Model, SerializerMixin):
     __tablename__ = "user"
@@ -26,14 +35,18 @@ class User(db.Model, SerializerMixin):
     mobile = db.Column(db.String(20))
     password = db.Column(db.String(255), nullable=False)
     is_admin = db.Column(db.Boolean, default=False)
-    role = db.Column(db.String(50), default="user")
+    role = db.Column(db.String(50), default="user")  # NEW
     address = db.Column(db.String(512))
+    reservations = db.relationship("Reservation", back_populates="user")
 
     def set_password(self, password: str):
         self.password = generate_password_hash(password)
 
     def check_password(self, password: str) -> bool:
         return check_password_hash(self.password, password)
+    @hybrid_property
+    def billing(self):
+        return sum( [ r.parking_fee for r in self.reservations if r.parking_fee != None] )
 
 
 class ParkingLot(db.Model, SerializerMixin):
@@ -61,6 +74,9 @@ class ParkingLot(db.Model, SerializerMixin):
             ]
 
     @hybrid_property
+    def occupied_spots(self):
+        return len([s for s in self.spots if s.status == "O"])
+    @hybrid_property
     def number_of_spots(self):
         return len(self.spots)
     
@@ -80,7 +96,7 @@ class ParkingLot(db.Model, SerializerMixin):
             raise ValueError(f"Cannot delete spot {spot_id} because it is occupied")
         self.spots.remove(spot)
         db.session.delete(spot)
-        db.session.flush()  
+        db.session.flush()  # ensure DB reflects removal immediately
         self.max_slots -= 1
     def add_spot(self, label: str = None):
         new_spot_number = len(self.spots) + 1
@@ -88,9 +104,8 @@ class ParkingLot(db.Model, SerializerMixin):
         new_spot = ParkingSpot(lot_id=self.id, label=new_label, status="A")
         self.spots.append(new_spot)
         self.max_slots += 1
-        db.session.flush() 
-
-
+        db.session.flush()  # ensure DB reflects addition immediately
+    # 🔹 Function 2: resize spots
     def resize_spots(self, new_count: int):
         current_count = len(self.spots)
 
@@ -98,7 +113,8 @@ class ParkingLot(db.Model, SerializerMixin):
             # Add new spots
             for i in range(current_count + 1, new_count + 1):
                 self.add_spot(label=f"{self.prefix} {i}")
-        elif new_count < current_count:            
+        elif new_count < current_count:
+            # Remove extra spots (only if they are not reserved)
             to_remove = [s for s in self.spots if s.status == "A"]
             to_remove = to_remove[: current_count - new_count]
             if len(to_remove) < (current_count - new_count):
@@ -138,18 +154,37 @@ class ParkingSpot(db.Model, SerializerMixin):
 
     @property
     def get_details(self):
+        rs = Reservation.query.filter_by(spot_id=self.id).order_by(Reservation.end_time.desc()).all()
+        sum_fee = sum(r.parking_fee for r in rs if r.parking_fee)
         r = self.current_reservation
         u = r.user if r else None
-        return {
-            "id": self.id,
-            "label": self.label,
-            "status": self.status,
-            "vehicle_number": r.vehicle_number if r else None,
-            "occupied_since": r.start_time if r else None,
-            "user_name": u.name if u else None,
-            "driver_contact": r.driver_contact if r else None,
-            "driver_name": r.driver_name if r else None,
-            "end_time": r.end_time if r else None
+        if self.status == "O":
+            return {
+                "id": self.id,
+                "label": self.label,
+                "status": self.status,
+                "vehicle_number": r.vehicle_number if r else None,
+                "start_time": dateFormat(r.start_time) if r else None,
+                "user_name": u.name if u else None,
+                "driver_contact": r.driver_contact if r else None,
+                "driver_name": r.driver_name if r else None,
+                "end_time": dateFormat(r.end_time) if r else None,
+                "total_earnings": sum_fee if sum_fee > 0 else None
+            } 
+        else:
+
+            r = rs[0] if rs else None
+            return {
+                "id": self.id,
+                "label": self.label,
+                "status": self.status,
+                "vehicle_number": r.vehicle_number if r else None,
+                "occupied_since": dateFormat(r.start_time) if r else None,
+                "user_name": r.user.name if r and r.user else None,
+                "driver_contact": r.driver_contact if r else None,
+                "driver_name": r.driver_name if r else None,
+                "end_time": dateFormat(r.end_time) if r else None,
+                "total_earnings": sum_fee if sum_fee > 0 else None
         }
 
 class Reservation(db.Model, SerializerMixin):
@@ -158,19 +193,95 @@ class Reservation(db.Model, SerializerMixin):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
     spot_id = db.Column(db.Integer, db.ForeignKey("parking_spot.id"), nullable=False)
-    vehicle_number = db.Column(db.String(20), nullable=False)   
-    driver_contact = db.Column(db.String(20), nullable=True)
-    driver_name = db.Column(db.String(120), nullable=True)
+    vehicle_number = db.Column(db.String(20), nullable=False)   # NEW
+    driver_contact = db.Column(db.String(20), nullable=True)  # NEW
+    driver_name = db.Column(db.String(120), nullable=True)  # NEW
     start_time = db.Column(db.DateTime, default=datetime.utcnow)
     end_time = db.Column(db.DateTime, nullable=True)
     parking_fee = db.Column(db.Float, nullable=True)
     active = db.Column(db.Boolean, default=True)
 
     # Relationships
-    user = db.relationship("User", backref="reservations")
+    user = db.relationship("User", back_populates="reservations")
     spot = db.relationship("ParkingSpot", back_populates="reservations")
+    
+    def to_dict(self):
+        return model_to_dict(self)
+    
+    @hybrid_property
+    def get_details(self):
 
-    # def end_reservation(self, end_time, cost: float):
+        return {
+                "id": self.id,
+                "label": self.spot.label,
+             
+                "vehicle_number": self.vehicle_number ,
+                "start_time": dateFormat(self.start_time) ,
+                "user_name": self.user.name ,
+                "driver_contact": self.driver_contact ,
+                "driver_name": self.driver_name ,
+                "end_time": dateFormat(self.end_time) ,
+                "total_earnings": self.parking_fee
+        }
+
+    # def end_reservation(self, end_time, cost: float): 
     #     self.end_time = end_time
     #     self.parking_fee = cost
     #     self.active = False
+
+
+def model_to_dict(obj):
+    result = {}
+    for col in obj.__table__.columns:
+        value = getattr(obj, col.name)
+        if isinstance(value, datetime):
+            result[col.name] = value.strftime("%Y-%m-%d %H:%M:%S") # safe for Vue inputs
+        else:
+            result[col.name] = value
+    return result
+
+def dateFormat(value):
+    return value.strftime("%Y-%m-%d %H:%M") if value else None
+    # return value.strftime("%Y-%m-%d %H:%M:%S")
+
+def search_all(search_term):
+    """
+    Search across all tables and text-convertible columns in the SQLAlchemy db.
+    Returns a list of dicts with table, column, row_id, and matched_value.
+    """
+
+    results = []
+    inspector = inspect(db.engine)
+
+    # Get all table names
+    tables = inspector.get_table_names()
+
+    with db.engine.connect() as conn:
+        for table in tables:
+            # Get all column names
+            columns = [col["name"] for col in inspector.get_columns(table)]
+
+            for col in columns:
+                try:
+                    # Build dynamic SQL (safe because table/col are from inspector)
+                    query = text(f"""
+                        SELECT rowid as id, {col} as value
+                        FROM {table}
+                        WHERE CAST({col} AS TEXT) LIKE :term
+                    """)
+
+                    rows = conn.execute(query, {"term": f"%{search_term}%"}).fetchall()
+
+                    for row in rows:
+                        results.append({
+                            "table": table,
+                            "column": col,
+                            "row_id": row.id,
+                            "matched_value": row.value
+                        })
+                except SQLAlchemyError:
+                    print("Error")
+                    # Skip columns that can't be cast/searched
+                    continue
+
+    return results

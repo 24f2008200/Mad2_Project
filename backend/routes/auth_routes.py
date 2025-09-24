@@ -1,72 +1,90 @@
-
-from flask import Blueprint, request, jsonify, session
-from backend.extensions import db, bcrypt  
+from flask import request, session ,Blueprint
+from flask_restful import Resource, Api
+from backend.extensions import db
 from backend.models import User
 from flask_jwt_extended import create_access_token
-
-auth_bp = Blueprint("auth", __name__, url_prefix="/auth")
-
-# Register 
-@auth_bp.route("/register", methods=["POST"])
-def register():
-    data = request.get_json()
-    if not data or "email" not in data or "password" not in data:
-        return jsonify({"error": "Email and password required"}), 400
-
-    if User.query.filter_by(email=data["email"]).first():
-        return jsonify({"error": "User already exists"}), 400
-
-    hashed_password = bcrypt.generate_password_hash(data["password"]).decode("utf-8")
-    user = User(
-        email=data["email"],
-        name=data.get("name", ""),
-        password=hashed_password,
-        is_admin=False
-    )
-    db.session.add(user)
-    db.session.commit()
-
-    return jsonify({"message": "User registered successfully"}), 201
+from werkzeug.security import generate_password_hash
 
 
-# Login
-@auth_bp.route("/login", methods=["POST"])
-def login():
-    data = request.get_json()
-    print(data)
-    if not data or "email" not in data or "password" not in data:
-        return jsonify({"error": "Email and password required"}), 400
+auth_bp = Blueprint("auth", __name__, url_prefix="/api/auth")
+api = Api(auth_bp)
 
-    user = User.query.filter_by(email=data["email"]).first()
-    if not user or not user.check_password(data["password"]):
-        return jsonify({"error": "Invalid credentials"}), 401
 
-    token  = create_access_token(
-        identity=str(user.id),  
-        additional_claims={
-        "email": user.email,
-        "role": user.role,
-        "is_admin": user.is_admin
-        }
-    )
-    print(user.id, user.email, user.role)
-    return jsonify({
-        "access_token": token,
-        "user": {
-            "id": str(user.id),
-            "email": user.email,
-            "name": user.name,
-            "role": user.role,
-            "mobile": user.mobile,
-            "is_admin": user.is_admin
-        }
-    }), 200
-@auth_bp.route("/logout", methods=["POST"])
-def logout():
-    session.pop("user", None)
-    return jsonify({"message": "Logged out"})
+# # -------- Register --------
+class RegisterResource(Resource):
+    @auth_bp.route("/register", methods=["POST"])
+    def post(self):
+        data = request.get_json()
+        if not data or "email" not in data or "password" not in data:
+            return {"error": "Email and password required"}, 400
 
-@auth_bp.route("/api/ping", methods=["GET", "OPTIONS"])
-def ping():
-    return {"message": "pong"}
+        if User.query.filter_by(email=data["email"]).first():
+            return {"error": "User already exists"}, 400
 
+        hashed_password = generate_password_hash(data["password"]).decode("utf-8")
+        user = User(
+            email=data["email"],
+            name=data.get("name", ""),
+            password=hashed_password,
+            is_admin=False
+        )
+        db.session.add(user)
+        db.session.commit()
+
+        return {"message": "User registered successfully"}, 201
+
+
+# -------- Login --------
+class LoginResource(Resource):
+    def post(self):
+        data = request.get_json()
+        if not data or "email" not in data or "password" not in data:
+            return {"error": "Email and password required"}, 400
+
+        user = User.query.filter_by(email=data["email"]).first()
+        if not user or not user.check_password(data["password"]):
+            return {"error": "Invalid credentials"}, 401
+
+        token = create_access_token(
+            identity=str(user.id),
+            additional_claims={
+                "email": user.email,
+                "role": user.role,
+                "is_admin": user.is_admin
+            }
+        )
+
+        return {
+            "access_token": token,
+            "user": {
+                "id": str(user.id),
+                "email": user.email,
+                "name": user.name,
+                "role": user.role,
+                "mobile": user.mobile,
+                "is_admin": user.is_admin
+            }
+        }, 200
+
+
+# # -------- Logout --------
+class LogoutResource(Resource):
+    def post(self):
+        session.pop("user", None)
+        return {"message": "Logged out"}, 200
+
+
+# -------- Ping --------
+class PingResource(Resource):
+    def get(self):
+        return {"message": "pong"}, 200
+
+    # Handle OPTIONS preflight (CORS)
+    def options(self):
+        return {}, 200
+
+
+api.add_resource(RegisterResource, "/register")
+api.add_resource(LoginResource, "/login")
+api.add_resource(LogoutResource, "/logout")
+api.add_resource(PingResource, "/ping")

@@ -1,0 +1,115 @@
+Perfect! Let’s create a single-command setup + run script that:
+
+Creates/activates the venv if missing
+
+Installs requirements.txt packages
+
+Starts the Flask server
+
+You’ll have Git Bash / WSL and PowerShell versions.
+
+1️⃣ Git Bash / WSL: start_flask.sh
+#!/bin/bash
+# start_flask.sh - setup venv, install deps, run Flask
+
+PROJECT_DIR=$(pwd)
+VENV_DIR="$PROJECT_DIR/venv"
+
+# 1️⃣ Create venv if missing
+if [ ! -d "$VENV_DIR" ]; then
+    echo "Creating virtual environment..."
+    python -m venv venv
+fi
+
+# 2️⃣ Activate venv
+source "$VENV_DIR/Scripts/activate"
+
+# 3️⃣ Upgrade pip
+python -m pip install --upgrade pip
+
+# 4️⃣ Install requirements
+if [ -f "requirements.txt" ]; then
+    echo "Installing requirements..."
+    python -m pip install -r requirements.txt
+fi
+
+# 5️⃣ Test key packages
+python -c "import flask_cors; import flask_caching; import flask_sqlalchemy; print('Imports OK')"
+
+# 6️⃣ Set FLASK_APP if not already
+export FLASK_APP=${FLASK_APP:-app.py}
+export FLASK_ENV=development
+
+# 7️⃣ Run Flask
+echo "Starting Flask server..."
+flask run
+
+
+Usage:
+
+cd /path/to/project
+bash start_flask.sh
+
+2️⃣ PowerShell: start_flask.ps1
+# start_flask.ps1 - setup venv, install deps, run Flask
+
+$ProjectDir = Get-Location
+$VenvDir = Join-Path $ProjectDir "venv"
+
+# 1️⃣ Create venv if missing
+if (-Not (Test-Path $VenvDir)) {
+    Write-Host "Creating virtual environment..."
+    python -m venv venv
+}
+
+# 2️⃣ Activate venv
+& "$VenvDir\Scripts\Activate.ps1"
+
+# 3️⃣ Upgrade pip
+python -m pip install --upgrade pip
+
+# 4️⃣ Install requirements
+if (Test-Path "requirements.txt") {
+    Write-Host "Installing requirements..."
+    python -m pip install -r requirements.txt
+}
+
+# 5️⃣ Test key packages
+python -c "import flask_cors; import flask_caching; import flask_sqlalchemy; Write-Host('Imports OK')"
+
+# 6️⃣ Set environment variables
+if (-Not $env:FLASK_APP) { $env:FLASK_APP = "app.py" }
+$env:FLASK_ENV = "development"
+
+# 7️⃣ Run Flask
+Write-Host "Starting Flask server..."
+flask run
+
+
+Usage:
+
+cd C:\path\to\project
+.\start_flask.ps1
+
+
+⚠️ First time running PS script, you may need:
+
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+
+✅ How it works
+
+Handles venv creation automatically.
+
+Installs all dependencies from requirements.txt in local venv.
+
+Activates the venv in the current shell.
+
+Sets FLASK_APP and FLASK_ENV automatically.
+
+Runs Flask server, ready to debug.
+
+One command → everything is ready.
+
+Switching projects is safe: just cd /other/project && bash start_flask.sh or PS equivalent.
+
+If you want, I can also make a VSCode launch configuration that calls this script directly, so pressing F5 will automatically run the script with the right venv every time. This fully eliminates the debugger “module not found” problem.

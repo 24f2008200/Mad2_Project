@@ -1,0 +1,47 @@
+1️⃣ Create a .vscode/tasks.json
+
+This defines a task that runs your setup script automatically.
+
+Replace .sh with .ps1 if on PowerShell.
+
+This task runs your start_project script.
+
+2️⃣ Configure VSCode to run the task on folder open
+
+Create .vscode/settings.json (or update your existing one):
+
+Currently, VSCode doesn’t have a built-in “run task on folder open”, so we’ll use an extension:
+
+Install Run On Folder Open
+
+Configure .vscode/runonsave.json:
+
+
+✅ Now, when you open the project folder, VSCode will automatically run start_project.sh (or .ps1), which activates venv, installs requirements, and starts Flask + Vue.
+
+3️⃣ Make sure scripts are executable
+Git Bash / WSL
+
+chmod +x start_project.sh
+
+
+PowerShell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+
+
+4️⃣ Launching Debugger
+Create .vscode/launch.json (Flask debugger):
+
+Now F5 will always debug Flask using the local project venv.
+
+5️⃣ How it works
+
+Open any project folder in VSCode
+
+Extension triggers start_project.sh automatically
+
+Venv is created/activated → Python packages installed → Flask & Vue started
+
+Terminal + debugger automatically use the local environment
+
+Switch projects → repeat, no global conflicts

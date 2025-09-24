@@ -1,0 +1,28 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Flask Debug",
+            "type": "python",
+            "request": "launch",
+            "python": "${workspaceFolder}/venv/Scripts/python.exe",
+            "module": "flask",
+            "env": {
+                "FLASK_APP": "backend/app.py",
+                "FLASK_ENV": "development"
+            },
+            "args": ["run", "--no-debugger", "--no-reload"],
+            "console": "integratedTerminal",
+            "jinja": true
+        },
+        {
+            "name": "Vue Dev Server",
+            "type": "node",
+            "request": "launch",
+            "program": "${workspaceFolder}/frontend/node_modules/.bin/vue-cli-service",
+            "args": ["serve"],
+            "cwd": "${workspaceFolder}/frontend",
+            "console": "integratedTerminal"
+        }
+    ]
+}

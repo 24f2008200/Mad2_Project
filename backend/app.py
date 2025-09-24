@@ -25,13 +25,13 @@ def create_app():
     Migrate(app, db)
 
     # Register blueprints
-    from routes.auth_routes import auth_bp
-    from routes.parking_routes import parking_bp
-    from routes.reservation_routes import reservation_bp
+    from backend.routes.auth_routes import auth_bp
+    # from routes.parking_routes import parking_bp
+    # from routes.reservation_routes import reservation_bp
 
     app.register_blueprint(auth_bp, url_prefix="/auth")
-    app.register_blueprint(parking_bp, url_prefix="/parking")
-    app.register_blueprint(reservation_bp, url_prefix="/reservation")
+    # app.register_blueprint(parking_bp, url_prefix="/parking")
+    # app.register_blueprint(reservation_bp, url_prefix="/reservation")
 
     return app
 

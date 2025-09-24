@@ -1,0 +1,47 @@
+Creates/activates the venv if missing
+
+Installs requirements.txt packages
+
+Starts the Flask server
+
+You’ll have Git Bash / WSL and PowerShell versions.
+
+Git Bash / WSL: start_flask.sh
+
+Usage:
+
+cd /path/to/project
+bash start_flask.sh
+
+
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+PowerShell: start_flask.ps1
+
+Usage:
+
+cd C:\path\to\project
+.\start_flask.ps1
+
+
+⚠️ First time running PS script, you may need:
+
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+
+
+
+How it works
+
+Handles venv creation automatically.
+
+Installs all dependencies from requirements.txt in local venv.
+
+Activates the venv in the current shell.
+
+Sets FLASK_APP and FLASK_ENV automatically.
+
+Runs Flask server, ready to debug.
+
+One command → everything is ready.
+
+Switching projects is safe: just cd /other/project && bash start_flask.sh or PS equivalent.

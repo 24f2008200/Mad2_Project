@@ -1,0 +1,17 @@
+{
+    "python.pythonPath": "${workspaceFolder}/venv/Scripts/python.exe",
+    "python.terminal.activateEnvironment": true,
+    "terminal.integrated.inheritEnv": true,
+    "terminal.integrated.defaultProfile.windows": "Git Bash",
+    "editor.formatOnSave": true,
+    "files.autoSave": "afterDelay",
+    "tasks.autoDetect": "on",
+    
+    // Run "Start Project" automatically on folder open
+    "runOnSave.commands": [
+        {
+            "match": ".*",
+            "cmd": "echo VSCode auto-start setup task"
+        }
+    ]
+}

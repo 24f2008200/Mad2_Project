@@ -1,0 +1,62 @@
+1. What is Vue?
+A progressive JavaScript framework for building reactive, component-based UIs.
+
+2. What is a reactive framework?
+A framework where UI automatically updates when the underlying data changes.
+
+3. What is memoization?
+An optimization technique that caches function results based on input arguments.
+
+4. What is a rainbow table?
+A precomputed table of hashes used to reverse passwords. Mitigated by salting.
+
+5. What is v-cloak?
+A Vue directive to hide raw template code until Vue finishes rendering.
+
+6. How can you access the server without a browser/URL?
+Using cURL, Postman, SSH, or tools like Telnet/Netcat.
+
+7. v-if vs v-show?
+
+v-if: Adds/removes element from DOM.
+
+v-show: Keeps element in DOM, toggles visibility with CSS.
+
+8. Memoization vs caching?
+
+Memoization → caches function results.
+
+Caching → general concept, stores any data for reuse.
+
+9. What is Celery?
+A Python distributed task queue for background and async jobs.
+
+10. Default hashing algorithm in MAD1?
+(Mention what you used: e.g., MD5 or SHA-256).
+
+11. What is SHA-256? Can it be decrypted? Hash algorithms you know?
+
+SHA-256 → one-way cryptographic hash, cannot be decrypted.
+
+Examples: MD5, SHA-1, SHA-2 family, SHA-3, bcrypt, scrypt, Argon2, BLAKE2.
+
+12. What is AJAX?
+A technique to exchange data with the server asynchronously without reloading the page.
+
+13. Why not let user choose download location for CSV?
+Browsers handle downloads to default folders; explicit path selection isn’t supported in normal web apps.
+
+14. Where did you implement caching?
+(Answer based on your project — e.g., cached API results or computed values).
+
+15. Improvements from MAD1 to MAD2?
+
+Cleaner modular code
+
+Better error handling
+
+Improved security (stronger hashing, validation)
+
+Added caching/performance tweaks
+
+More features & better user experience
