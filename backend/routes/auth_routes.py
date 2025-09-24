@@ -79,7 +79,6 @@ class PingResource(Resource):
     def get(self):
         return {"message": "pong"}, 200
 
-    # Handle OPTIONS preflight (CORS)
     def options(self):
         return {}, 200
 

@@ -20,3 +20,5 @@ colorama==0.4.6
 six==1.17.0
 pytz==2025.2
 aniso8601==10.0.1
+
+reportlab

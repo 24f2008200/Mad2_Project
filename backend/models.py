@@ -18,7 +18,6 @@ class SerializerMixin:
             value = getattr(self, column.name)
 
             if "time" in column.name.lower() and isinstance(value, datetime):
-                # Custom formatting for datetime fields with 'time' in their name
                 result[column.name] = dateFormat(value)
             else:
                 result[column.name] = value
@@ -96,7 +95,7 @@ class ParkingLot(db.Model, SerializerMixin):
             raise ValueError(f"Cannot delete spot {spot_id} because it is occupied")
         self.spots.remove(spot)
         db.session.delete(spot)
-        db.session.flush()  # ensure DB reflects removal immediately
+        db.session.flush() 
         self.max_slots -= 1
     def add_spot(self, label: str = None):
         new_spot_number = len(self.spots) + 1
@@ -104,17 +103,15 @@ class ParkingLot(db.Model, SerializerMixin):
         new_spot = ParkingSpot(lot_id=self.id, label=new_label, status="A")
         self.spots.append(new_spot)
         self.max_slots += 1
-        db.session.flush()  # ensure DB reflects addition immediately
-    # 🔹 Function 2: resize spots
+        db.session.flush()  
+
     def resize_spots(self, new_count: int):
         current_count = len(self.spots)
 
-        if new_count > current_count:
-            # Add new spots
+        if new_count > current_count:            # Add new spots
             for i in range(current_count + 1, new_count + 1):
                 self.add_spot(label=f"{self.prefix} {i}")
-        elif new_count < current_count:
-            # Remove extra spots (only if they are not reserved)
+        elif new_count < current_count:            # Remove extra spots (only if they are not reserved)
             to_remove = [s for s in self.spots if s.status == "A"]
             to_remove = to_remove[: current_count - new_count]
             if len(to_remove) < (current_count - new_count):
@@ -140,8 +137,7 @@ class ParkingSpot(db.Model, SerializerMixin):
     def occupied(self):
         return self.status == 'O'
     @property
-    def current_reservation(self):
-        # returns the first active one
+    def current_reservation(self):        # returns the first active one
         for r in self.reservations:
             if r.end_time is None:
                 return r
@@ -242,7 +238,7 @@ def model_to_dict(obj):
 
 def dateFormat(value):
     return value.strftime("%Y-%m-%d %H:%M") if value else None
-    # return value.strftime("%Y-%m-%d %H:%M:%S")
+
 
 def search_all(search_term):
     """
@@ -257,13 +253,11 @@ def search_all(search_term):
     tables = inspector.get_table_names()
 
     with db.engine.connect() as conn:
-        for table in tables:
-            # Get all column names
+        for table in tables:            # Get all column names
             columns = [col["name"] for col in inspector.get_columns(table)]
 
             for col in columns:
                 try:
-                    # Build dynamic SQL (safe because table/col are from inspector)
                     query = text(f"""
                         SELECT rowid as id, {col} as value
                         FROM {table}
@@ -281,7 +275,7 @@ def search_all(search_term):
                         })
                 except SQLAlchemyError:
                     print("Error")
-                    # Skip columns that can't be cast/searched
+                    # Skip columns that can't be searched
                     continue
 
     return results

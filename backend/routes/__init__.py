@@ -1,8 +1,10 @@
 from flask import Blueprint
 
-def register_blueprints(app):
-    from . import auth, lots, reservations
+from . import auth_routes
 
-    app.register_blueprint(auth.bp, url_prefix="/api/auth")
-    app.register_blueprint(lots.bp, url_prefix="/api/lots")
-    app.register_blueprint(reservations.bp, url_prefix="/api/reservations")
+# def register_blueprints(app):
+#     from . import lots, reservations
+
+#     app.register_blueprint(auth_routes.bp, url_prefix="/api/auth")
+#     app.register_blueprint(lots.bp, url_prefix="/lots")
+#     app.register_blueprint(reservations.bp, url_prefix="/reservations")

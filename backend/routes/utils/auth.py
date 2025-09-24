@@ -19,6 +19,14 @@ def auth_required(fn):
         return jwt_required()(fn)
     return fn
 
+# # Dynamic !
+# def auth_required(fn):
+#     @wraps(fn)
+#     def wrapper(*args, **kwargs):
+#         if os.getenv("ENFORCE_AUTH", "false").lower() == "true":
+#             return jwt_required()(fn)(*args, **kwargs)
+#         return fn(*args, **kwargs)
+#     return wrapper
 
 def current_user():
     """Return the logged-in User object based on JWT token, or None if auth is disabled."""
@@ -33,13 +41,13 @@ def current_user():
             name="Dummy Admin",
             is_admin=True
         )
-    print("Fetching current user from JWT")
+    # print("Fetching current user from JWT")
 
     user_id = int(get_jwt_identity())   # "sub" → user id (as int after conversion)
     claims = get_jwt()
     email = claims["email"]
     is_admin = claims["is_admin"]
-    print(f"Current user ID from JWT: {user_id}")
+    # print(f"Current user ID from JWT: {user_id}")
     return db.session.get(User, user_id)
 
 
