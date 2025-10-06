@@ -12,7 +12,7 @@ import base64
 from backend.extensions import db, cache
 from backend.models import ParkingLot, ParkingSpot, Reservation, User, dateFormat, search_all
 from backend.routes.utils.auth import admin_required
-
+from backend.services.parking_service import get_all_lots
 from collections import defaultdict
 
 
@@ -25,7 +25,7 @@ class LotsResource(Resource):
     method_decorators = [admin_required]
 
     def get(self):
-        return  "To do", 200
+        return  get_all_lots(), 200
 
     def post(self):#   Create new parking lot
         data = request.json
@@ -49,7 +49,7 @@ class LotResource(Resource):
     method_decorators = [admin_required]
 
     def put(self, lot_id):
-
+        """Update lot"""
         lot = ParkingLot.query.get_or_404(lot_id)
         data = request.get_json()
         try:
@@ -66,7 +66,7 @@ class LotResource(Resource):
         return {"message": "Parking lot updated"}, 200
 
     def delete(self, lot_id):
-
+        """Delete lot"""
         lot = db.session.get(ParkingLot, lot_id)
         if not lot:
             return {"error": "Lot not found"}, 404
@@ -140,9 +140,24 @@ class SummaryResource(Resource):
     method_decorators = [admin_required]
 
     def get(self):
-        
+        total_users = User.query.count()
+        active_reservations = Reservation.query.filter(
+            Reservation.end_time == None
+        ).count()
+        lots = ParkingLot.query.count()
+
+        revenue = db.session.query(
+            func.strftime("%Y-%m", Reservation.start_time).label("month"),
+            func.sum(Reservation.parking_fee).label("total")
+        ).group_by("month").all()
+
+        revenue_data = [{"month": r[0], "amount": float(r[1] or 0)} for r in revenue]
+
         return {
-            "to do"
+            "total_users": total_users,
+            "active_reservations": active_reservations,
+            "lots": lots,
+            "revenue": revenue_data
         }
 
 
@@ -150,16 +165,55 @@ class OccupancyReportResource(Resource):
     method_decorators = [admin_required]
 
     def get(self):
-        
-        return "To do"
+        lots = ParkingLot.query.all()
+        data = []
+        for lot in lots:
+            occupied = lot.occupied_spots
+            available = lot.number_of_spots - occupied
+            data.append({"lot": lot.name, "available": available, "occupied": occupied})
+        return data
 
 class RevenueReportResource(Resource):
     method_decorators = [admin_required]
 
     def get(self):
-              
+        results = (
+            db.session.query(
+                ParkingLot.name,
+                extract("month", Reservation.start_time).label("month"),
+                func.sum(Reservation.parking_fee).label("revenue")
+            )
+            .join(Reservation.spot)
+            .join(ParkingLot)
+            .group_by(ParkingLot.name, "month")
+            .all()
+        )
+
+        data = defaultdict(dict)
+        months_seen = set()
+
+        # Collect raw data
+        for lot, month, revenue in results:
+            m = int(month)
+            months_seen.add(m)
+            data[lot][m] = float(revenue or 0)
+
+        # Determine active range
+        if months_seen:
+            min_month, max_month = min(months_seen), max(months_seen)
+        else:
+            return {"range": {"start": 1, "end": 0}, "data": {}}
+
+        # Fill missing months with 0
+        final_data = {}
+        for lot, month_dict in data.items():
+            final_data[lot] = {
+                m: month_dict.get(m, 0.0) for m in range(min_month, max_month + 1)
+            }
+
         return {
-            "to do"
+            "range": {"start": min_month, "end": max_month},
+            "data": final_data
         }
 
 
@@ -167,22 +221,172 @@ class ReservationReportResource(Resource):
     method_decorators = [admin_required]
 
     def get(self):
-        
-        return "to do"
+        results = (
+            db.session.query(
+                ParkingLot.name,
+                func.count(Reservation.id).label("bookings")
+            )
+            .join(Reservation.spot)
+            .join(ParkingLot)
+            .group_by(ParkingLot.name)
+            .all()
+        )
+        return [{"lot": lot, "bookings": bookings} for lot, bookings in results]
 
 
 class PdfReportResource(Resource):
     method_decorators = [admin_required]
 
     def post(self):
-             
-        return "to do"
+        """Generate PDF with tables + charts"""
+        data = request.get_json()
+        charts = data.get("charts", [])
+
+        buffer = BytesIO()
+        p = canvas.Canvas(buffer, pagesize=A4)
+        width, height = A4
+
+        # Page 1: Title + Tables
+        p.setFont("Helvetica-Bold", 16)
+        p.drawString(50, height - 50, "Parking Lot Monthly Report")
+
+        # Occupancy summary
+        lots = ParkingLot.query.all()
+        occupancy_data = [["Lot", "Available Spots", "Occupied Spots"]]
+        for lot in lots:
+            occupied = lot.occupied_spots
+            available = lot.number_of_spots - occupied
+            occupancy_data.append([lot.name, available, occupied])
+
+        table = Table(occupancy_data, colWidths=[150, 150, 150])
+        table.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), colors.grey),
+            ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
+            ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+            ("BOTTOMPADDING", (0, 0), (-1, 0), 10),
+            ("GRID", (0, 0), (-1, -1), 1, colors.black),
+        ]))
+        table.wrapOn(p, width, height)
+        table.drawOn(p, 50, height - 200)
+
+        # Revenue summary
+        results = (
+            db.session.query(
+                ParkingLot.name,
+                func.sum(Reservation.parking_fee).label("total_revenue")
+            )
+            .join(Reservation.spot)
+            .join(ParkingLot)
+            .group_by(ParkingLot.name)
+            .all()
+        )
+        revenue_data = [["Lot", "Total Revenue"]]
+        for lot, rev in results:
+            revenue_data.append([lot, float(rev or 0)])
+
+        table2 = Table(revenue_data, colWidths=[200, 200])
+        table2.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), colors.grey),
+            ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
+            ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+            ("BOTTOMPADDING", (0, 0), (-1, 0), 10),
+            ("GRID", (0, 0), (-1, -1), 1, colors.black),
+        ]))
+        table2.wrapOn(p, width, height)
+        table2.drawOn(p, 50, height - 400)
+
+        # Charts
+        p.showPage()
+        y = height - 100
+        for chart in charts:
+            try:
+                img_data = chart["data"].split(",")[1]
+                img_bytes = base64.b64decode(img_data)
+                img_buf = BytesIO(img_bytes)
+                img_reader = ImageReader(img_buf)
+                p.drawImage(img_reader, 50, y - 250, width=500, height=250,
+                            preserveAspectRatio=True, mask="auto")
+                y -= 300
+                if y < 200:
+                    p.showPage()
+                    y = height - 100
+            except Exception as e:
+                print("Error embedding chart:", e)
+
+        p.save()
+        buffer.seek(0)
+        return send_file(
+            buffer, as_attachment=True,
+            download_name="Parking_Report.pdf",
+            mimetype="application/pdf"
+        )
 
 class SearchResource(Resource):
     method_decorators = [admin_required]
 
     def get(self):
-        return "to do"
+        search_type = request.args.get("type")
+        search_by = request.args.get("search_by", "").strip()
+        value = request.args.get("value", "").strip()
+
+        if not search_type:
+            return {"error": "Missing ?type= parameter"}, 400
+        # if not value:
+        #     return []
+
+        # -------- USERS --------
+        if search_type == "users":
+            query = User.query
+            if search_by == "name":
+                query = query.filter(User.name.ilike(f"%{value}%"))
+            elif search_by == "mobile":
+                query = query.filter(User.mobile.ilike(f"%{value}%"))
+            elif search_by == "email":
+                query = query.filter(User.email.ilike(f"%{value}%"))
+            elif search_by == "address":
+                query = query.filter(User.address.ilike(f"%{value}%"))
+            elif search_by == "vehicle":
+                query = query.join(Reservation).filter(Reservation.vehicle_number.ilike(f"%{value}%"))
+            elif search_by == "driver":
+                query = query.join(Reservation).filter(Reservation.driver_name.ilike(f"%{value}%"))
+            elif search_by == "parking_lot":
+                query = query.join(Reservation).join(ParkingSpot).join(ParkingLot).filter(ParkingLot.name.ilike(f"%{value}%"))
+            return [u.to_dict() for u in query.all()]
+
+        # -------- BOOKINGS --------
+        elif search_type == "bookings":
+
+            query = Reservation.query.join(User)
+            if search_by == "name":
+                query = query.filter(User.name.ilike(f"%{value}%"))
+            elif search_by == "mobile":
+                query = query.filter(User.mobile.ilike(f"%{value}%"))
+            elif search_by == "address":
+                query = query.filter(User.address.ilike(f"%{value}%"))
+            elif search_by == "vehicle_number":
+                query = query.filter(Reservation.vehicle_number.ilike(f"%{value}%"))
+            elif search_by == "driver":
+                query = query.filter(Reservation.driver_name.ilike(f"%{value}%"))
+            elif search_by == "parking_lot":
+                query = query.join(ParkingSpot).join(ParkingLot).filter(ParkingLot.name.ilike(f"%{value}%"))
+
+            return [r.get_details for r in query.all()]
+
+        # -------- LOTS --------
+        elif search_type == "lots":
+            # Reuse existing service
+            return get_all_lots(), 200
+
+        # -------- BROAD QUERY (bquery) --------
+        elif search_type == "bquery":
+            results = search_all(value)
+            return results, 200
+
+        else:
+            return {"error": f"Unsupported search type: {search_type}"}, 400
+
 
 
 api.add_resource(LotsResource, "/lots")

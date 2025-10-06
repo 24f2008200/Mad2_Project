@@ -181,91 +181,18 @@ class UserProfileResource(Resource):
 class UserSummaryResource(Resource):
     method_decorators = [auth_required]
     def get(self):
-        try:
-            # year from query string, fallback = current year
-            year = request.args.get("year", type=int) or datetime.utcnow().year
-            user = current_user()
-            user_id = user.id
-
-            # Base query for reservations in that year
-            reservations = (
-                db.session.query(Reservation)
-                .filter(
-                    Reservation.user_id == user_id,
-                    extract("year", Reservation.start_time) == year
-                )
-            )
-            # total reservations
-            total_reservations = reservations.count()
-
-            # total spend (sum of fees, coalesce to 0 if null)
-            total_spend = (
-                db.session.query(func.coalesce(func.sum(Reservation.parking_fee), 0))
-                .filter(
-                    Reservation.user_id == user_id,
-                    extract("year", Reservation.start_time) == year
-                )
-                .scalar()
-            )
-
-            # average monthly spend (spread across months passed so far)
-            months_passed = 12 if year < datetime.utcnow().year else datetime.utcnow().month
-            avg_monthly = round(total_spend / months_passed, 2) if months_passed else 0
-
-
-            # active subscriptions (example: reservations without end_time & still active)
-            active_subscriptions = (
-                db.session.query(Reservation)
-                .filter(
-                    Reservation.user_id == user_id,
-                    Reservation.active == True,
-                    Reservation.end_time == None
-                )
-                .count()
-            )
-
-
-            return {
-                "year": year,
-                "total_spend": round(total_spend, 2),
-                "avg_monthly": avg_monthly,
-                "total_reservations": total_reservations,
-                "active_subscriptions": active_subscriptions
-            }, 200
-
-        except Exception as e:
-            db.session.rollback()
-            return {"error": str(e)}, 500
-
+        return "to do"
 
 
 # -------- Monthly Spend Report --------
 class MonthlyReportResource(Resource):
     method_decorators = [auth_required]
     def get(self):
-        year = request.args.get("year", type=int) or datetime.utcnow().year
-        user = current_user()
-        user_id = user.id
-
-        results = (
-            db.session.query(
-                extract("month", Reservation.start_time).label("month"),
-                func.sum(Reservation.parking_fee).label("amount")
-            )
-            .filter(
-                Reservation.user_id == user_id,
-                extract("year", Reservation.start_time) == year
-            )
-            .group_by("month")
-            .all()
-        )
-
-        # Build response: months as short names, amounts aligned
+       
+       # Build response: months as short names, amounts aligned
         months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]
         amounts = [0] * 12
-        for month, amt in results:
-            amounts[int(month)-1] = float(amt or 0)
-
+       
         return {
             "months": months,
             "amounts": amounts
@@ -280,34 +207,8 @@ class LocationReportResource(Resource):
         user = current_user()
         user_id = user.id
 
-        results = (
-            db.session.query(
-                ParkingLot.name.label("lot_name"),
-                func.sum(Reservation.parking_fee).label("amount"),
-                func.count(Reservation.id).label("count")
-            )
-            .join(Reservation.spot)
-            .join(ParkingLot)
-            .filter(
-                Reservation.user_id == user_id,
-                extract("year", Reservation.start_time) == year
-            )
-            .group_by(ParkingLot.name)
-            .all()
-        )
 
-        locations = [r.lot_name for r in results]
-        amounts = [float(r.amount or 0) for r in results]
-        top = [
-            {"location": r.lot_name, "amount": float(r.amount or 0), "count": r.count}
-            for r in results
-        ]
-
-        return {
-            "locations": locations,
-            "amounts": amounts,
-            "top": top
-        }, 200
+        return "todo"
 
 
 # -------- Reservation Activity --------
@@ -318,28 +219,8 @@ class ActivityReportResource(Resource):
         user = current_user()
         user_id = user.id
 
-        since = datetime.utcnow() - timedelta(days=30 * months_back)
-
-        results = (
-            db.session.query(
-                func.strftime("%Y-%m", Reservation.start_time).label("month"),
-                func.count(Reservation.id).label("count")
-            )
-            .filter(
-                Reservation.user_id == user_id,
-                Reservation.start_time >= since
-            )
-            .group_by("month")
-            .all()
-        )
-
-        months = [r[0] for r in results]
-        counts = [r[1] for r in results]
-
-        return {
-            "months": months,
-            "counts": counts
-        }, 200
+        
+        return "todo"
 
 
 # -------- Recent Reservations --------
