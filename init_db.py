@@ -10,7 +10,7 @@ with app.app_context():
     db.drop_all()
     db.create_all()
 
-    # --- Add Admin ---
+    # --- Add Admin --- 
     admin = User(
         name="Admin",
         email="admin@example.com",

@@ -1,5 +1,5 @@
 from backend.models import db, User, ParkingLot, ParkingSpot, Reservation
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 from werkzeug.security import generate_password_hash
 from backend.app import create_app, db
 from backend.models import User
@@ -123,7 +123,7 @@ with app.app_context():
         user_id=user1.id,
         spot_id=lot1.spots[0].id,
         vehicle_number="TN01AB1234",
-        start_time=datetime.utcnow() - timedelta(hours=1),
+        start_time=datetime.now(UTC) - timedelta(hours=1),
         end_time=None,  
         driver_contact="9876543210",
         driver_name="Ram",
@@ -133,8 +133,8 @@ with app.app_context():
         user_id=user2.id,
         spot_id=lot1.spots[1].id,
         vehicle_number="TN01XY9999",
-        start_time=datetime.utcnow() - timedelta(hours=3),
-        end_time=datetime.utcnow() - timedelta(hours=1), 
+        start_time=datetime.now(UTC) - timedelta(hours=3),
+        end_time=datetime.now(UTC) - timedelta(hours=1), 
         driver_contact="8765432109",
         driver_name="Murugan"
     )
@@ -142,7 +142,7 @@ with app.app_context():
         user_id=user3.id,
         spot_id=lot2.spots[0].id,
         vehicle_number="TN01ZZ8888",
-        start_time=datetime.utcnow() - timedelta(hours=2),
+        start_time=datetime.now(UTC) - timedelta(hours=2),
         end_time= None ,
         driver_contact="9876543210",
         driver_name="Ram"
@@ -152,8 +152,8 @@ with app.app_context():
         user_id=user4.id,
         spot_id=lot3.spots[0].id,
         vehicle_number="TN01CC7777",
-        start_time=datetime.utcnow() - timedelta(hours=4),
-        end_time=datetime.utcnow() - timedelta(hours=2) , 
+        start_time=datetime.now(UTC) - timedelta(hours=4),
+        end_time=datetime.now(UTC) - timedelta(hours=2) , 
         driver_contact="765242325",
         driver_name="Kumar"
     )
@@ -161,7 +161,7 @@ with app.app_context():
         user_id=user5.id,
         spot_id=lot4.spots[0].id,
         vehicle_number="TN01DD6666",
-        start_time=datetime.utcnow() - timedelta(hours=1, minutes=30),
+        start_time=datetime.now(UTC) - timedelta(hours=1, minutes=30),
         end_time=None , 
         driver_contact="765242325",
         driver_name="Kumar"
@@ -171,7 +171,7 @@ with app.app_context():
         user_id=user1.id,
         spot_id=lot4.spots[1].id,
         vehicle_number="TN01EE5555",
-        start_time=datetime.utcnow() - timedelta(hours=5),
+        start_time=datetime.now(UTC) - timedelta(hours=5),
         end_time=None,
         driver_contact="1254698725",
         driver_name="Ramu"
@@ -181,4 +181,4 @@ with app.app_context():
 
     db.session.add_all([res1, res2, res3, res4, res5, res6])
     db.session.commit()
-    print("✅ Database initialized with dummy data!")
+    print("Database initialized with dummy data!")

@@ -39,7 +39,11 @@ class BookSpotResource(Resource):
         if not spot:
             return {"error": "No available spots in this lot"}, 400
 
-        # create reservation
+        slot_for_car = Reservation.get_slot_for_car(vehicle_number)
+        if slot_for_car:
+            return {"error": "This vehicle is already parked at " + slot_for_car.label}, 400
+
+        # create reservation 
         reservation = Reservation(
             user_id=user.id,
             spot_id=spot.id,
