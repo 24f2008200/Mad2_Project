@@ -53,14 +53,14 @@
 import { ref, computed } from 'vue'
 const emit = defineEmits(["action-click"])
 
-// Use props safely by assigning const props = defineProps(...)
+
 const props = defineProps({
   columns: { type: Array, required: true },
   rows: { type: Array, required: true },
   enableFilters: { type: Boolean, default: true }
 })
  
-// reactive filters
+
 const filters = ref({})
 
 
@@ -72,22 +72,27 @@ const filteredRows = computed(() => {
       if (!filter) return true
 
       const col = props.columns.find(c => c.key === key)
-      const value = String(row[key] || "").toLowerCase()
+      const rawValue = row[key]
+      const value = String(rawValue || "").toLowerCase()
 
       if (col?.filterType === "select") {
         // exact match for dropdown
         return value === filter.toLowerCase()
       } else {
+        // special case: '~' means "pick only None/empty"
+        if (filter === "~") {
+          return rawValue === null || rawValue === undefined || rawValue === ""
+        }
         // substring match for free typing
-        return value.toLowerCase().includes(filter.toLowerCase())
-
+        return value.includes(filter.toLowerCase())
       }
     })
   )
 })
 
 
-// helper to get unique, non-empty values for a column
+
+// helper 
 function uniqueValues(key) {
   const rows = props.rows || []
   return [...new Set(rows.map(r => r[key]).filter(v => v !== null && v !== undefined && v !== ""))]

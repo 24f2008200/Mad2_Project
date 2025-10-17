@@ -187,7 +187,7 @@ class UserSummaryResource(Resource):
     def get(self):
         try:
             # year from query string, fallback = current year
-            year = request.args.get("year", type=int) or datetime.utcnow().year
+            year = request.args.get("year", type=int) or datetime.now(timezone.utc).year
             user = current_user()
             user_id = user.id
 
@@ -213,7 +213,7 @@ class UserSummaryResource(Resource):
             )
 
             # average monthly spend (spread across months passed so far)
-            months_passed = 12 if year < datetime.utcnow().year else datetime.utcnow().month
+            months_passed = 12 if year < datetime.now(timezone.utc).year else datetime.now(timezone.utc).month
             avg_monthly = round(total_spend / months_passed, 2) if months_passed else 0
 
 
@@ -247,7 +247,7 @@ class UserSummaryResource(Resource):
 class MonthlyReportResource(Resource):
     method_decorators = [auth_required]
     def get(self):
-        year = request.args.get("year", type=int) or datetime.utcnow().year
+        year = request.args.get("year", type=int) or datetime.now(timezone.utc).year
         user = current_user()
         user_id = user.id
 
@@ -280,7 +280,7 @@ class MonthlyReportResource(Resource):
 class LocationReportResource(Resource):
     method_decorators = [auth_required]
     def get(self):
-        year = request.args.get("year", type=int) or datetime.utcnow().year
+        year = request.args.get("year", type=int) or datetime.now(timezone.utc).year
         user = current_user()
         user_id = user.id
 
@@ -322,7 +322,7 @@ class ActivityReportResource(Resource):
         user = current_user()
         user_id = user.id
 
-        since = datetime.utcnow() - timedelta(days=30 * months_back)
+        since = datetime.now(timezone.utc) - timedelta(days=30 * months_back)
 
         results = (
             db.session.query(

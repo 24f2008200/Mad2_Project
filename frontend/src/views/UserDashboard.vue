@@ -1,6 +1,6 @@
 <template>
-  <div class="container mt-4">
-    <h2 class="mb-4">{{ currentUser["name"] }} Dashboard</h2>
+  <div class="container-fluid mt-4">
+    <!-- <h2 class="mb-4">{{ currentUser["name"] }} Dashboard</h2> -->
 
     <!-- Recent Parking History -->
     <div class="card mb-4">
@@ -182,7 +182,9 @@ async function confirmBooking() {
     fetchReservations(); // refresh reservations
     fetchLots(); // refresh list of lots
   } else {
-    alert("Failed to book slot");
+    const errorData = await res.json();
+    // console.log("Failed to book slot:", errorData);
+    alert("Failed to book slot: " + errorData.error);
   }
 }
 

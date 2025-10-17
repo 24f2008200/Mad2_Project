@@ -67,7 +67,7 @@ const reservationCols = [
   { key: "user_name", label: "User", type: "text" },
   { key: "vehicle_number", label: "Vechile", type: "text" },
   { key: "start_time", label: "From", type: "text" },
-  { key: "end_times", label: "To", type: "text" },
+  { key: "end_time", label: "To", type: "text" },
   { key: "driver_name", label: "Driver", type: "text" },
   { key: "driver_contact", label: "Contact", type: "number" },
   { key: "total_earnings", label: "Revenue", type: "number" },

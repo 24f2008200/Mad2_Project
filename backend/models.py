@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime,timezone
 from werkzeug.security import generate_password_hash, check_password_hash
 from backend.app import db
 from sqlalchemy.ext.declarative import declared_attr
@@ -6,7 +6,12 @@ from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy import select, func ,inspect, text
 from sqlalchemy.exc import SQLAlchemyError
 
-class SerializerMixin:
+class MyModel(db.Model):
+    __abstract__ = True
+    id = db.Column(db.Integer, primary_key=True)
+    created_at = db.Column(db.DateTime(timezone = True), default= lambda : datetime.now(timezone.utc))
+    updated_at = db.Column(db.DateTime(timezone = True), default= lambda : datetime.now(timezone.utc),onupdate= lambda : datetime.now(timezone.utc))
+    active = db.Column(db.Boolean, default=True)
     @declared_attr
     def __tablename__(cls):
         return cls.__name__.lower()
@@ -25,10 +30,8 @@ class SerializerMixin:
         return result
 
 
-class User(db.Model, SerializerMixin):
-    __tablename__ = "user"
 
-    id = db.Column(db.Integer, primary_key=True)
+class User(MyModel):
     email = db.Column(db.String(255), unique=True, nullable=False)
     name = db.Column(db.String(120))
     mobile = db.Column(db.String(20))
@@ -36,6 +39,9 @@ class User(db.Model, SerializerMixin):
     is_admin = db.Column(db.Boolean, default=False)
     role = db.Column(db.String(50), default="user")  # NEW
     address = db.Column(db.String(512))
+    receive_reminders = db.Column(db.Boolean, default=True)
+    reminder_time = db.Column(db.String(10))
+
     reservations = db.relationship("Reservation", back_populates="user")
 
     def set_password(self, password: str):
@@ -48,17 +54,14 @@ class User(db.Model, SerializerMixin):
         return sum( [ r.parking_fee for r in self.reservations if r.parking_fee != None] )
 
 
-class ParkingLot(db.Model, SerializerMixin):
-    __tablename__ = "parking_lot"
-
-    id = db.Column(db.Integer, primary_key=True)
+class ParkingLot(MyModel):
     name = db.Column(db.String(255), nullable=False)
     prefix = db.Column(db.String(3), nullable=True)
     price = db.Column(db.Float, nullable=False, default=0.0)
     address = db.Column(db.String(512))
     pin_code = db.Column(db.String(20))
     max_slots = db.Column(db.Integer, nullable=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
 
     spots = db.relationship("ParkingSpot", backref="lot", cascade="all, delete-orphan")
 
@@ -124,14 +127,10 @@ class ParkingLot(db.Model, SerializerMixin):
         db.session.flush()
 
 
-class ParkingSpot(db.Model, SerializerMixin):
-    __tablename__ = "parking_spot"
-
-    id = db.Column(db.Integer, primary_key=True)
-    lot_id = db.Column(db.Integer, db.ForeignKey("parking_lot.id"), nullable=False)
+class ParkingSpot(MyModel):
+    lot_id = db.Column(db.Integer, db.ForeignKey("parkinglot.id"), nullable=False)
     status = db.Column(db.String(1), nullable=False, default="A")  # A=available, O=occupied
     label = db.Column(db.String(50))
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
     reservations = db.relationship("Reservation", back_populates="spot", lazy=True)
     @property
     def occupied(self):
@@ -183,19 +182,16 @@ class ParkingSpot(db.Model, SerializerMixin):
                 "total_earnings": sum_fee if sum_fee > 0 else None
         }
 
-class Reservation(db.Model, SerializerMixin):
-    __tablename__ = "reservation"
-
-    id = db.Column(db.Integer, primary_key=True)
+class Reservation(MyModel):
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
-    spot_id = db.Column(db.Integer, db.ForeignKey("parking_spot.id"), nullable=False)
+    spot_id = db.Column(db.Integer, db.ForeignKey("parkingspot.id"), nullable=False)
     vehicle_number = db.Column(db.String(20), nullable=False)   # NEW
     driver_contact = db.Column(db.String(20), nullable=True)  # NEW
     driver_name = db.Column(db.String(120), nullable=True)  # NEW
     start_time = db.Column(db.DateTime, default=datetime.utcnow)
     end_time = db.Column(db.DateTime, nullable=True)
     parking_fee = db.Column(db.Float, nullable=True)
-    active = db.Column(db.Boolean, default=True)
+
 
     # Relationships
     user = db.relationship("User", back_populates="reservations")
