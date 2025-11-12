@@ -206,18 +206,16 @@ async function performSearch() {
 }
 // Release a spot
 async function showDetails(reservationId) {
-  const res = await apiFetch(`/api/user/spots`, {
+  const res = await apiFetch(`/api/user/release`, {
     method: "POST",
     headers: { Authorization: `Bearer ${token.value}` },
-    body: JSON.stringify({
-      "action": "release",
-      "reservation_id": reservationId }),
+    body: JSON.stringify({"reservation_id": reservationId }),
   });
   if (res.ok) {
     reservations.value = reservations.value.map((r) =>
       r.id === reservationId ? { ...r, status: 'completed' } : r
     );
   }
-  //fetchReservations();
+  //fetchReservations(); 
 }
 </script>

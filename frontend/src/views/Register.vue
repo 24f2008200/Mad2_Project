@@ -1,230 +1,156 @@
 <template>
-  <form @submit.prevent="handleRegister" class="container mt-5">
+  <form @submit.prevent="handleSubmit" class="container mt-5">
     <div class="card shadow-sm border-0 rounded-3 p-4 mx-auto" style="max-width: 650px;">
-      <h4 class="mb-4 text-center text-primary">Register</h4>
+      <h4 class="mb-4 text-center text-primary">{{ title }}</h4>
 
-      <div class="row mb-3 align-items-center">
-        <div class="col-md-4 text-md-end">
-          <label class="form-label mb-0">Name</label>
-        </div>
-        <div class="col-md-8">
-          <input v-model="form.name" type="text" class="form-control" required />
-        </div>
-      </div>
+      <template v-for="field in schema" :key="field.name">
+        <div class="row mb-3 align-items-center">
+          <div class="col-md-4 text-md-end">
+            <label class="form-label mb-0">{{ field.label }}</label>
+          </div>
+          <div class="col-md-8">
+            <!-- Render textarea or input dynamically -->
+            <textarea
+              v-if="field.type === 'textarea'"
+              v-model="form[field.name]"
+              class="form-control"
+              :rows="field.rows || 3"
+              :required="field.required"
+              :placeholder="field.placeholder"
+            ></textarea>
 
-      <div class="row mb-3 align-items-center">
-        <div class="col-md-4 text-md-end">
-          <label class="form-label mb-0">Email</label>
-        </div>
-        <div class="col-md-8">
-          <input v-model="form.email" type="email" class="form-control" required />
-        </div>
-      </div>
+            <input
+              v-else
+              v-model="form[field.name]"
+              :type="field.type"
+              class="form-control"
+              :required="field.required"
+              :placeholder="field.placeholder"
+              :class="{ 'is-invalid': errors[field.name] }"
+            />
 
-      <div class="row mb-3 align-items-center">
-        <div class="col-md-4 text-md-end">
-          <label class="form-label mb-0">Mobile</label>
+            <div class="invalid-feedback">{{ errors[field.name] }}</div>
+          </div>
         </div>
-        <div class="col-md-8">
-          <input v-model="form.mobile" type="text" class="form-control" />
-        </div>
-      </div>
-
-      <div class="row mb-3">
-        <div class="col-md-4 text-md-end">
-          <label class="form-label mb-0">Address</label>
-        </div>
-        <div class="col-md-8">
-          <textarea v-model="form.address" class="form-control" rows="3"></textarea>
-        </div>
-      </div>
-
-      <div class="row mb-3 align-items-center">
-        <div class="col-md-4 text-md-end">
-          <label class="form-label mb-0">Google Chat Hook</label>
-        </div>
-        <div class="col-md-8">
-          <input
-            v-model="form.google_chat_hook"
-            type="url"
-            class="form-control"
-            placeholder="https://chat.googleapis.com/..."
-          />
-        </div>
-      </div>
-
-      <div class="row mb-3 align-items-center">
-        <div class="col-md-4 text-md-end">
-          <label class="form-label mb-0">Password</label>
-        </div>
-        <div class="col-md-8">
-          <input v-model="form.password" type="password" class="form-control" required />
-        </div>
-      </div>
-
-      <div class="row mb-3 align-items-center">
-        <div class="col-md-4 text-md-end">
-          <label class="form-label mb-0">Confirm Password</label>
-        </div>
-        <div class="col-md-8">
-          <input
-            v-model="form.confirm_password"
-            type="password"
-            class="form-control"
-            :class="{ 'is-invalid': passwordMismatch }"
-            required
-          />
-          <div class="invalid-feedback">Passwords do not match</div>
-        </div>
-      </div>
+      </template>
 
       <div class="text-center mt-4">
-        <button type="submit" class="btn btn-primary px-4" :disabled="passwordMismatch">
-          Register
-        </button>
+        <button type="submit" class="btn btn-primary px-4">Register</button>
+      </div>
+
+      <div v-if="message" :class="['mt-3 text-center', success ? 'text-success' : 'text-danger']">
+        {{ message }}
       </div>
     </div>
   </form>
 </template>
 
 <script setup>
-import { reactive, ref, computed } from "vue";
+import { reactive, ref } from "vue";
 import { apiFetch } from "@/api";
 
-const form = reactive({
-  name: "",
-  email: "",
-  mobile: "",
-  address: "",
-  google_chat_hook: "",
-  password: "",
-  confirm_password: "",
-});
+//  Define the schema (macro)
+const formSchema = [
+  { name: "name", label: "Name", type: "text", required: true },
+  { name: "email", label: "Email", type: "email", required: true },
+  {
+    name: "mobile",
+    label: "Mobile",
+    type: "text",
+    required: true,
+    validate: (val) => {
+      if (!val) return "Mobile number is required";
+      if (!/^\d{10}$/.test(val)) return "Must be a 10-digit number";
+      return true;
+    },
+  },
+  { name: "address", label: "Address", type: "textarea" },
+  {
+    name: "google_chat_hook",
+    label: "Google Chat Hook",
+    type: "url",
+    placeholder: "https://chat.googleapis.com/...",
+  },
+  { name: "password", label: "Password", type: "password", required: true },
+  {
+    name: "confirm_password",
+    label: "Confirm Password",
+    type: "password",
+    required: true,
+    validate: (val, form) => val === form.password || "Passwords do not match",
+  },
+];
 
+//  State
+const schema = formSchema;
+const form = reactive(Object.fromEntries(schema.map(f => [f.name, ""])));
+const errors = reactive({});
 const message = ref("");
 const success = ref(false);
+const title = "Register";
 
-const passwordMismatch = computed(
-  () => form.password && form.confirm_password && form.password !== form.confirm_password
-);
+//  Validation helper
+function validateForm() {
+  Object.keys(errors).forEach(k => (errors[k] = "")); // reset
 
-async function handleRegister() {
-  if (passwordMismatch.value) {
-    message.value = "Passwords do not match!";
-    success.value = false;
-    return;
+  let valid = true;
+  for (const field of schema) {
+    const val = form[field.name];
+    if (field.required && !val) {
+      errors[field.name] = "Required";
+      valid = false;
+    } else if (field.validate) {
+      const result = field.validate(val, form);
+      if (result !== true) {
+        errors[field.name] = result;
+        valid = false;
+      }
+    }
   }
+  return valid;
+}
+
+//  Submit
+async function handleSubmit() {
+  if (!validateForm()) return;
 
   try {
-    const response = await apiFetch("/api/user/register", {
+    const res = await apiFetch("/api/auth/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name: form.name,
-        email: form.email,
-        mobile: form.mobile,
-        address: form.address,
-        google_chat_hook: form.google_chat_hook,
-        password: form.password,
-      }),
+      body: JSON.stringify(form),
     });
+    const data = await res.json();
 
-    const data = await response.json();
-
-    if (response.ok) {
+    if (res.ok) {
       success.value = true;
       message.value = data.message || "Registration successful!";
-      Object.assign(form, {
-        name: "",
-        email: "",
-        mobile: "",
-        address: "",
-        google_chat_hook: "",
-        password: "",
-        confirm_password: "",
-      });
+      Object.keys(form).forEach(k => (form[k] = ""));
     } else {
       success.value = false;
       message.value = data.error || "Registration failed.";
     }
   } catch (err) {
-    console.error("Error during registration:", err);
     success.value = false;
-    message.value = "Server error. Please try again.";
+    message.value = "Server error.";
   }
 }
 </script>
 
-
-
 <style scoped>
-/* Outer container gives breathing space */
 .container {
   display: flex;
   justify-content: center;
   align-items: flex-start;
   min-height: 100vh;
-  background: #f8f9fa; /* soft gray background */
+  background: #f8f9fa;
   padding-top: 40px;
 }
-
-/* Card-like wrapper */
 .card {
   width: 100%;
-  max-width: 650px;
-  background: #c1becd; /* #ffffff; */
+  background: #ffffff;
   border: 1px solid #dee2e6;
   border-radius: 12px;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08); /* gentle elevation */
-  padding: 2rem;
-  transition: all 0.2s ease-in-out;
-}
-
-/* Slight hover lift for elegance */
-.card:hover {
-  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.12);
-  transform: translateY(-2px);
-}
-
-/* Headings and labels */
-.card h4 {
-  font-weight: 600;
-  text-align: center;
-  color: #0d6efd;
-  margin-bottom: 1.5rem;
-}
-
-.form-label {
-  font-weight: 500;
-  color: #495057;
-}
-
-/* Rounded, modern form controls */
-.form-control {
-  border-radius: 6px;
-  border: 1px solid #ced4da;
-  transition: border-color 0.2s, box-shadow 0.2s;
-}
-
-.form-control:focus {
-  border-color: #0d6efd;
-  box-shadow: 0 0 0 0.15rem rgba(13, 110, 253, 0.25);
-}
-
-/* Register button styling */
-.btn-primary {
-  border-radius: 25px;
-  padding: 0.5rem 2rem;
-  font-weight: 500;
-}
-
-/* Responsive alignment */
-@media (max-width: 768px) {
-  .text-md-end {
-    text-align: left !important;
-  }
-  .card {
-    padding: 1.5rem;
-  }
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
 }
 </style>

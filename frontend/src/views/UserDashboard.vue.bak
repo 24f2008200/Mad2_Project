@@ -160,14 +160,13 @@ async function confirmBooking() {
   if (!selectedLot.value) return;
   form.value.user_name = currentUser.name;
   form.value.user_id = currentUser.id;
-  const res = await apiFetch("/api/user/spots", {
+  const res = await apiFetch("/api/user/book", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${token.value}`
     },
     body: JSON.stringify({
-      action: "book",
       lot_id: selectedLot.value.id,
       vehicle_no: form.value.vehicle_no,
       user_name: form.value.user_name,
@@ -202,12 +201,10 @@ async function fetchReservations() {
 
 // Release a spot
 async function releaseSpot(reservationId) {
-  const res = await apiFetch(`/api/user/spots`, {
+  const res = await apiFetch(`/api/user/release`, {
     method: "POST",
     headers: { Authorization: `Bearer ${token.value}` },
-    body: JSON.stringify({
-      "action": "release",
-      "reservation_id": reservationId }),
+    body: JSON.stringify({"reservation_id": reservationId }),
   });
   if (res.ok) {
     reservations.value = reservations.value.map((r) =>
