@@ -22,3 +22,5 @@ pytz==2025.2
 aniso8601==10.0.1
 
 reportlab
+requests==2.31.0
+email-validator==2.0.0

@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Vue Router Nested Routes Demo</title>
+
+  <!-- Vue 2 + Vue Router -->
+  <script src="https://cdn.jsdelivr.net/npm/vue@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vue-router@3"></script>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      line-height: 1.6;
+    }
+    a {
+      display: inline-block;
+      margin: 6px 0;
+    }
+    .route-box {
+      margin-top: 20px;
+      padding: 12px;
+      border: 2px solid #444;
+      border-radius: 8px;
+    }
+  </style>
+</head>
+<body>
+
+<div id="app">
+
+  <h1>Vue Router Nested Route Test</h1>
+
+  <p>Click these:</p>
+
+  <a href="#/products/123">/products/123</a> <br>
+  <a href="#/products/123/reviews">/products/123/reviews</a>
+
+  <div class="route-box">
+    <router-view></router-view>
+  </div>
+
+</div>
+
+<script>
+  const Product = {
+    template: `
+      <div>
+        <h1>Product {{ $route.params.id }}</h1>
+
+        <div style="padding-left:20px; border-left:3px solid #ccc;">
+          <router-view></router-view>
+        </div>
+      </div>
+    `
+  };
+
+  const ProductReviews = {
+    template: `<div><h2>Reviews for Product {{ $route.params.id }}</h2></div>`
+  };
+
+  const routes = [
+    {
+      path: '/products/:id',
+      component: Product,
+      children: [
+        {
+          path: 'reviews',
+          component: ProductReviews
+        }
+      ]
+    }
+  ];
+
+  const router = new VueRouter({
+    mode: "hash",
+    routes
+  });
+
+  new Vue({
+    el: '#app',
+    router
+  });
+</script>
+
+</body>
+</html>

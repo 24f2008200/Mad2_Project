@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Promise / setTimeout variations</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; padding: 18px; line-height: 1.4; }
+    .controls { margin-bottom: 12px; display:flex; gap:8px; flex-wrap:wrap; }
+    button { padding:8px 12px; border-radius:6px; border:1px solid #bbb; background:#f7f7f7; cursor:pointer; }
+    pre { background:#111; color:#e6ffda; padding:12px; border-radius:8px; min-height:120px; overflow:auto; }
+    label { display:inline-flex; gap:6px; align-items:center; }
+    input[type=number] { width:70px; padding:6px; border-radius:6px; border:1px solid #ccc; }
+  </style>
+</head>
+<body>
+
+  <h1>Promise / setTimeout behaviour playground</h1>
+
+  <p>Global <code>count</code> is used (like your original). Click buttons to run variants. The log shows timestamps and ordering.</p>
+
+  <div class="controls">
+    <button id="btn-original">Original (3 concurrent, same delay)</button>
+    <button id="btn-different-delays">Concurrent (different delays)</button>
+    <button id="btn-sequential-await">Sequential (await each)</button>
+    <button id="btn-map-await">Async map with Promise.all (common mistake)</button>
+    <button id="btn-serial-promises">Make promises sequentially (chained)</button>
+    <button id="btn-clear">Clear log</button>
+    <label>delay (ms):
+      <input id="delay" type="number" value="100" min="0" />
+    </label>
+  </div>
+
+  <pre id="log"></pre>
+
+<script>
+  // Simple logger with relative times
+  const logEl = document.getElementById('log');
+  const startTime = () => performance.now();
+  let baseT = startTime();
+  function resetBase() { baseT = performance.now(); }
+  function t() { return Math.round(performance.now() - baseT) + 'ms'; }
+  function log(...args) {
+    logEl.textContent += '[' + t() + '] ' +
+    args.map(a => (typeof a === 'object' ? JSON.stringify(a) : String(a))).join(' ')
+    + '\n';
+
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  // The "incrementCount" factory similar to your snippet.
+  // It schedules setTimeout and resolves with the value of global `count` after incrementing it.
+  function makeIncrementer(delay) {
+    return function incrementCount() {
+      return new Promise(resolve => {
+        log('scheduling timer with delay', delay ,count);
+        setTimeout(() => {
+          count++;
+          log('timer fired -> resolved', count);
+          resolve(count);
+        }, delay);
+      });
+    };
+  }
+
+  // Global count like in your original code
+  let count = 0;
+
+  function resetCount() {
+    count = 0;
+    resetBase();
+    logEl.textContent = '';
+    log('reset count to 0');
+  }
+
+  // === VARIANTS ===
+
+  // 1) Original: create 3 promises by calling incrementCount() three times, then await Promise.all
+  async function originalVariant() {
+    count = 0;
+    resetBase();
+    log('Running originalVariant (3 concurrent, same delay = ' + Number(delayInput.value) + 'ms)');
+    const incrementCount = makeIncrementer(Number(delayInput.value));
+
+    // calls are immediate; setTimeouts scheduled now
+    const p1 = incrementCount();
+    const p2 = incrementCount();
+    const p3 = incrementCount();
+
+    log('after scheduling timers, before await Promise.all');
+    const results = await Promise.all([p1, p2, p3]);
+    log('Promise.all resolved -> results:', results);
+  }
+
+  // 2) Concurrent with different delays to show resolve order vs Promise.all order
+  async function differentDelaysVariant() {
+    count = 0;
+    resetBase();
+    log('Running concurrent differentDelaysVariant');
+    // different delays
+    const incA = makeIncrementer(150);
+    const incB = makeIncrementer(50);
+    const incC = makeIncrementer(100);
+
+    const pA = incA(); // scheduled
+    const pB = incB(); // scheduled
+    const pC = incC(); // scheduled
+    log('scheduled timers with delays 150, 50, 100');
+
+    // Promise.all resolves after all done. The array order follows pA,pB,pC though they may resolve in different order.
+    const results = await Promise.all([pA, pB, pC]);
+    log('Promise.all resolved -> results:', results);
+  }
+
+  // 3) Sequential: await each call one-by-one
+  async function sequentialAwaitVariant() {
+    count = 0;
+    resetBase();
+    log('Running sequentialAwaitVariant (await each incrementCount in loop)');
+    const incrementCount = makeIncrementer(Number(delayInput.value));
+    const results = [];
+    for (let i = 0; i < 3; i++) {
+      log('calling incrementCount #' + (i+1));
+      const r = await incrementCount(); // waits for each promise to resolve before next call
+      log('await returned for #' + (i+1) + ' ->', r);
+      results.push(r);
+    }
+    log('done sequential -> results:', results);
+  }
+
+  // 4) Async map mistake: using async callback in map then Promise.all on result demonstrates common pitfall
+  async function mapAwaitVariant() {
+    count = 0;
+    resetBase();
+    log('Running mapAwaitVariant (async map + Promise.all)');
+    const incrementCount = makeIncrementer(Number(delayInput.value));
+    // people sometimes write: arr.map(async () => await incrementCount())
+    const arr = [0,1,2];
+    const promArray = arr.map(async (x) => {
+      // note: the async wrapper doesn't delay scheduling the inner incrementCount's setTimeout
+      log('map called for', x);
+      const v = await incrementCount();
+      log('map inner await for', x, 'returned', v);
+      return v;
+    });
+
+    log('after map, before awaiting Promise.all');
+    const results = await Promise.all(promArray);
+    log('Promise.all over async map -> results:', results);
+  }
+
+  // 5) Serial promises by chaining (alternative to sequential await)
+  async function serialChainedVariant() {
+    count = 0;
+    resetBase();
+    log('Running serialChainedVariant (chain promises manually)');
+    const incrementCount = makeIncrementer(Number(delayInput.value));
+    // Start with a resolved promise and chain 3 increments
+    const results = [];
+    await [1,2,3].reduce((chain, _i, idx) => {
+      return chain.then(() => {
+        log('chained call #' + (idx+1));
+        return incrementCount().then(r => {
+          results.push(r);
+          log('chained resolved for #' + (idx+1) + ' ->', r);
+        });
+      });
+    }, Promise.resolve());
+    log('chain done -> results:', results);
+  }
+
+  // Wire up buttons
+  const delayInput = document.getElementById('delay');
+  document.getElementById('btn-original').onclick = originalVariant;
+  document.getElementById('btn-different-delays').onclick = differentDelaysVariant;
+  document.getElementById('btn-sequential-await').onclick = sequentialAwaitVariant;
+  document.getElementById('btn-map-await').onclick = mapAwaitVariant;
+  document.getElementById('btn-serial-promises').onclick = serialChainedVariant;
+  document.getElementById('btn-clear').onclick = resetCount;
+
+  // Initialize
+  resetCount();
+</script>
+
+</body>
+</html>

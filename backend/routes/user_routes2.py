@@ -3,7 +3,7 @@ from flask import request, Blueprint
 from sqlalchemy import func, extract
 from datetime import datetime, timezone, timedelta
 from backend.app import db
-from backend.models import Reservation, ParkingSpot, ParkingLot, dateFormat,User
+from backend.models import Reservation, ParkingSpot, ParkingLot, dateFormat
 from backend.routes.utils.auth import auth_required, current_user
 
 user_bp = Blueprint("user", __name__, url_prefix="/api/user")
@@ -196,87 +196,7 @@ class SpotActivityResource(Resource):
             }
             for r in reservations
         ], 200
-# ---------- List Lots by Pin Code ----------
-class LotsResource(Resource):
-    method_decorators = [auth_required]
-
-    def get(self):
-        pin_code = request.args.get("pin_code")
-        if not pin_code:
-            return {"error": "pin_code query parameter is required"}, 400
-
-        lots = ParkingLot.query.filter_by(pin_code=pin_code).all()
-        return [
-            {
-                "id": lot.id,
-                "name": lot.name,
-                "address": lot.address,
-                "pin_code": lot.pin_code,
-                "price": lot.price,
-                "number_of_spots": lot.number_of_spots,
-                "available_spots": sum(1 for s in lot.spots if s.status == "A"),
-            }
-            for lot in lots
-        ], 200
-
-
-# ---------- List Available Pin Codes ----------
-class PinCodesResource(Resource):
-    method_decorators = [auth_required]
-
-    def get(self):
-        pin_codes = db.session.query(ParkingLot.pin_code).distinct().all()
-        return [p[0] for p in pin_codes], 200
-
-
-# ---------- User Profile ----------
-class UserProfileResource(Resource):
-    method_decorators = [auth_required]
-
-    def get(self, user_id):
-        user = db.session.get(User, user_id)
-        if not user:
-            return {"error": "User not found"}, 404
-        return {
-            "id": user.id,
-            "name": user.name,
-            "email": user.email,
-            
-        }, 200
-    
-
-# ---------- User Reservations ----------
-class UserReservationsResource(Resource):
-    method_decorators = [auth_required]
-
-    def get(self):
-        user = current_user()
-        reservations = Reservation.query.filter_by(user_id=user.id).all()
-
-        result = []
-        for r in reservations:
-            lot = r.spot.lot if r.spot else None
-            result.append({
-                "id": r.id,
-                "spot_id": r.spot.label if r.spot else None,
-                "lot_prefix": lot.prefix if lot else None,
-                "vehicle_number": r.vehicle_number,
-                "start_time": dateFormat(r.start_time),
-                "end_time": dateFormat(r.end_time),
-                "driver_name": r.driver_name,
-                "driver_contact": r.driver_contact,
-                "status": "active" if not r.end_time else "completed",
-                "cost": r.parking_fee
-            })
-
-        return result, 200
-
-
-api.add_resource(UserProfileResource, "/profile/<int:user_id>")
 
 
 # Register one single endpoint for all spot-related ops
 api.add_resource(SpotActivityResource, "/spots")
-api.add_resource(LotsResource, "/lots")
-api.add_resource(PinCodesResource, "/pincodes")
-api.add_resource(UserReservationsResource, "/reservations")

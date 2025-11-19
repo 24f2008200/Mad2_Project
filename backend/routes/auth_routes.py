@@ -1,32 +1,39 @@
-from flask import request, session ,Blueprint
+from time import timezone
+from datetime import timedelta, timezone, datetime
+from flask import request, session, Blueprint
 from flask_restful import Resource, Api
 from backend.extensions import db
 from backend.models import User
 from flask_jwt_extended import create_access_token
-from werkzeug.security import generate_password_hash
-
+from werkzeug.security import generate_password_hash, check_password_hash
 
 auth_bp = Blueprint("auth", __name__, url_prefix="/api/auth")
 api = Api(auth_bp)
 
-
-# # -------- Register --------
+# -------- Register --------
 class RegisterResource(Resource):
-    @auth_bp.route("/register", methods=["POST"])
     def post(self):
         data = request.get_json()
+        print(data)
         if not data or "email" not in data or "password" not in data:
             return {"error": "Email and password required"}, 400
 
         if User.query.filter_by(email=data["email"]).first():
             return {"error": "User already exists"}, 400
 
-        hashed_password = generate_password_hash(data["password"]).decode("utf-8")
+        hashed_password = generate_password_hash(data["password"])
         user = User(
             email=data["email"],
             name=data.get("name", ""),
             password=hashed_password,
-            is_admin=False
+            mobile=data.get("mobile", ""),
+            address=data.get("address", ""),
+            receive_reminders=data.get("receive_reminders", "No") == "Yes",
+            reminder_time=data.get("reminder_time", "18:00"),
+            google_chat_webhook=data.get("google_chat_hook", None),
+            role="user",
+            is_admin=False,
+            last_login= datetime.now(timezone.utc)
         )
         db.session.add(user)
         db.session.commit()
@@ -42,7 +49,7 @@ class LoginResource(Resource):
             return {"error": "Email and password required"}, 400
 
         user = User.query.filter_by(email=data["email"]).first()
-        if not user or not user.check_password(data["password"]):
+        if not user or not check_password_hash(user.password, data["password"]):
             return {"error": "Invalid credentials"}, 401
 
         token = create_access_token(
@@ -53,6 +60,8 @@ class LoginResource(Resource):
                 "is_admin": user.is_admin
             }
         )
+        user.last_login = datetime.now(timezone.utc)
+        db.session.commit()
 
         return {
             "access_token": token,
@@ -67,7 +76,7 @@ class LoginResource(Resource):
         }, 200
 
 
-# # -------- Logout --------
+# -------- Logout --------
 class LogoutResource(Resource):
     def post(self):
         session.pop("user", None)
@@ -83,6 +92,7 @@ class PingResource(Resource):
         return {}, 200
 
 
+# Register resources
 api.add_resource(RegisterResource, "/register")
 api.add_resource(LoginResource, "/login")
 api.add_resource(LogoutResource, "/logout")

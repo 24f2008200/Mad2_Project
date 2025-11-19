@@ -2,7 +2,7 @@
   <div v-if="resultData && resultData.length > 0" class="row justify-content-center mb-4">
     <div class="row justify-content-center mb-4">
       <div class="col-12 col-lg-10">
-        <div class="table-responsive">
+        <div class="table-responsive">abc
           <DataTable :columns="resultColumns" :rows="resultData" @action-click="handleAction" />
         </div>
       </div>

@@ -1,0 +1,101 @@
+
+python -m venv venv
+source venv/Scripts/activate
+pip install -r requirements.txt
+./venv/Scripts/python.exe -m pip install -r requirements.txt
+
+python -m backend.init_db
+
+
+python -m init_db.app
+python -m backend.app
+
+python -m backend.app redis L 
+
+
+cd frontend
+npm run dev
+
+Ubuntu (WSL) terminal
+To start Redis: sudo service redis-server start
+# or
+redis-server --daemonize yes
+
+To check if it’s running:     redis-cli ping
+
+To stop Redis:   sudo service redis-server stop
+# or
+redis-cli shutdown
+
+
+
+
+pip install redis flask-caching
+
+python -m init_db
+python -m init_db2
+
+
+
+
+ngrok config add-authtoken 32sH40OoZLDfJVdlczpkatNhdzE_2kKkGCRWGZ8H6yQK5vN4t
+
+ngrok http 5173
+
+
+curl -X POST http://127.0.0.1:5000/auth/register \
+    -H "Content-Type: application/json" \
+    -d '{"email":"test@example.com", "password":"1234", "name":"Tester"}'
+
+
+curl -X POST http://127.0.0.1:5000/auth/login \
+    -H "Content-Type: application/json" \
+    -d '{"email":"test@example.com", "password":"1234"}'
+
+
+
+flask --app backend.app db init
+flask --app backend.app db migrate -m "initial migration"
+flask --app backend.app db upgrade
+
+
+
+/vehicle_parking_app_xfXXXXXXX   # root folder
+│
+├── /frontend
+│   └── /src
+│       └── /components
+│           ├── file1.vue
+│           └── file2.vue
+│
+└── /backend
+    ├── app.py             # entry point for Flask app
+    ├── /models
+    │   └── __init__.py    # database models
+    └── /routes
+        ├── __init__.py    # blueprint registration
+        ├── auth.py        # login/register APIs
+        ├── lots.py        # parking lot endpoints
+        ├── reservations.py# reservation endpoints
+
+
+/backend
+    /routes
+        __init__.py
+        auth_routes.py
+        parking_routes.py
+        reservation_routes.py
+    app.py
+    db_init.py
+    models.py
+
+
+
+frontend/
+  index.html   ← Entry point (Jinja2 will just serve this)
+  js/
+    app.js     ← Vue root instance
+    components/
+      AdminDashboard.js
+      ParkingLotCard.js
+      Navbar.js

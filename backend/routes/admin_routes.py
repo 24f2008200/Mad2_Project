@@ -8,9 +8,10 @@ from reportlab.lib.utils import ImageReader
 from reportlab.platypus import Table, TableStyle
 from io import BytesIO
 import base64
+from datetime import datetime,timezone
 
 from backend.extensions import db, cache
-from backend.models import ParkingLot, ParkingSpot, Reservation, User, dateFormat, search_all
+from backend.models import ParkingLot, ParkingSpot, Reservation, User, dateFormat, search_all, ReminderJob
 from backend.routes.utils.auth import admin_required
 from backend.services.parking_service import get_all_lots
 from collections import defaultdict
@@ -108,11 +109,12 @@ class UsersResource(Resource):
                 "mobile": u.mobile,
                 "address": u.address,
                 "rev": u.billing,
+                "last_login": dateFormat(u.last_login),
                 "is_blocked": u.is_admin < 0
             }
             for u in users
         ]
-
+ 
 
 class ReservationsResource(Resource):
     method_decorators = [admin_required]
@@ -387,6 +389,87 @@ class SearchResource(Resource):
         else:
             return {"error": f"Unsupported search type: {search_type}"}, 400
 
+class ReminderLogsResource(Resource):
+    method_decorators = [admin_required]
+
+    def get(self):
+        """
+        Admin:
+        Query params:
+            page, per_page
+            status (pending/sent/skipped/error)
+            user_id
+            date_from, date_to (YYYY-MM-DD)
+        """
+       
+        page = int(request.args.get("page", 1))
+        per_page = int(request.args.get("per_page", 20))
+
+        status = request.args.get("status")
+        user_id = request.args.get("user_id")
+        date_from = request.args.get("date_from")
+        date_to = request.args.get("date_to")
+
+        query = ReminderJob.query
+
+        if status:
+            query = query.filter(ReminderJob.status == status)
+
+        if user_id:
+            query = query.filter(ReminderJob.user_id == int(user_id))
+
+        if date_from:
+            dt_from = datetime.strptime(date_from, "%Y-%m-%d").replace(tzinfo=utc)
+            query = query.filter(ReminderJob.scheduled_at >= dt_from)
+
+        if date_to:
+            dt_to = datetime.strptime(date_to, "%Y-%m-%d").replace(tzinfo=utc)
+            query = query.filter(ReminderJob.scheduled_at <= dt_to)
+
+        query = query.order_by(ReminderJob.scheduled_at.desc())
+
+        page_obj = query.paginate(page=page, per_page=per_page, error_out=False)
+
+        logs = []
+        for job in page_obj.items:
+            u = User.query.get(job.user_id)
+            logs.append({
+                "id": job.id,
+                "user_id": job.user_id,
+                "user_name": u.name if u else None,
+                "scheduled_at": job.scheduled_at.isoformat(),
+                "status": job.status,
+                "sent_at": job.sent_at.isoformat() if job.sent_at else None,
+                "error_message": getattr(job, "error_message", None),
+                "created_at": job.created_at.isoformat(),
+            })
+        logs1 =[
+            {
+                "id": "12",
+                "user_id": "34",
+                "user_name":"test user",
+                "scheduled_at": datetime.now().date().isoformat(),
+                "status": "sent",
+                "sent_at": datetime.now().isoformat(),
+                "error_message": "None",
+                "created_at": datetime.now().isoformat(),
+            },
+            {
+                "id": "12",
+                "user_id": "34",
+                "user_name":"another user",
+                "scheduled_at": datetime.now().date().isoformat(),
+                "status": "sent",
+                "sent_at": datetime.now().isoformat(),
+                "error_message": "None",
+                "created_at": datetime.now().isoformat(),
+            }
+            
+        ]
+        if len(logs)==0:
+            return logs1
+        return logs
+
 
 
 api.add_resource(LotsResource, "/lots")
@@ -401,4 +484,7 @@ api.add_resource(OccupancyReportResource, "/reports/occupancy")
 api.add_resource(RevenueReportResource, "/reports/revenue")
 api.add_resource(ReservationReportResource, "/reports/reservations")
 api.add_resource(PdfReportResource, "/reports/pdf")
+api.add_resource(ReminderLogsResource, "/reminders/logs")
 
+
+ 

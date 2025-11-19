@@ -2,13 +2,13 @@
 
 
 
-Milestone-VP-MAD2 Charts-Analytics
+
 Milestone-VP-MAD2 Redis-Caching
 
 Milestone-VP-MAD2 Celery-Jobs
 
 
-Milestone-VP-MAD2 Responsive-PWA
+
 Milestone-VP-MAD2 Advanced-Analytics-AI
 
 Milestone-VP-MAD2 Final-Submission

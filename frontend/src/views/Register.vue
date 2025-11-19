@@ -1,84 +1,29 @@
 <template>
-  <form @submit.prevent="handleSubmit" class="container mt-5">
-    <div class="card shadow-sm border-0 rounded-3 p-4 mx-auto" style="max-width: 650px;">
-      <h4 class="mb-4 text-center text-primary">{{ title }}</h4>
 
-      <template v-for="field in schema" :key="field.name">
-        <div class="row mb-3 align-items-center">
-          <div class="col-md-4 text-md-end">
-            <label class="form-label mb-0">{{ field.label }}</label>
-          </div>
-          <div class="col-md-8">
-            <!-- Render textarea or input dynamically -->
-            <textarea
-              v-if="field.type === 'textarea'"
-              v-model="form[field.name]"
-              class="form-control"
-              :rows="field.rows || 3"
-              :required="field.required"
-              :placeholder="field.placeholder"
-            ></textarea>
+  <GenericForm :row="editingRow" :title="title" :fields="formSchema" @save="updateUser" @cancel="closeModal" />
 
-            <input
-              v-else
-              v-model="form[field.name]"
-              :type="field.type"
-              class="form-control"
-              :required="field.required"
-              :placeholder="field.placeholder"
-              :class="{ 'is-invalid': errors[field.name] }"
-            />
-
-            <div class="invalid-feedback">{{ errors[field.name] }}</div>
-          </div>
-        </div>
-      </template>
-
-      <div class="text-center mt-4">
-        <button type="submit" class="btn btn-primary px-4">Register</button>
-      </div>
-
-      <div v-if="message" :class="['mt-3 text-center', success ? 'text-success' : 'text-danger']">
-        {{ message }}
-      </div>
-    </div>
-  </form>
 </template>
 
 <script setup>
 import { reactive, ref } from "vue";
 import { apiFetch } from "@/api";
+import GenericForm from "@/components/GenericForm.vue";
+import { useToast } from "vue-toastification";
+import { useRouter } from "vue-router";
+const router = useRouter();
+
+const toast = useToast();
 
 //  Define the schema (macro)
 const formSchema = [
-  { name: "name", label: "Name", type: "text", required: true },
-  { name: "email", label: "Email", type: "email", required: true },
-  {
-    name: "mobile",
-    label: "Mobile",
-    type: "text",
-    required: true,
-    validate: (val) => {
-      if (!val) return "Mobile number is required";
-      if (!/^\d{10}$/.test(val)) return "Must be a 10-digit number";
-      return true;
-    },
-  },
-  { name: "address", label: "Address", type: "textarea" },
-  {
-    name: "google_chat_hook",
-    label: "Google Chat Hook",
-    type: "url",
-    placeholder: "https://chat.googleapis.com/...",
-  },
-  { name: "password", label: "Password", type: "password", required: true },
-  {
-    name: "confirm_password",
-    label: "Confirm Password",
-    type: "password",
-    required: true,
-    validate: (val, form) => val === form.password || "Passwords do not match",
-  },
+  { key: 'name', label: 'Name', type: 'text' },
+  { key: 'email', label: 'Email', type: 'email' ,required:true},
+  { key: 'mobile', label: 'Mobile', type: 'tel' ,required:true},
+  { key: 'address', label: 'Address', type: 'textarea' },
+  { key: "receive_reminders", label: "Receive Reminders", type: "select", options: ["Yes", "No"] },
+  { key: "reminder_time", label: "Reminder Time", type: "text" },
+  { key: 'google_chat_hook', label: 'Google Chat Hook', type: 'url' },
+  { key: 'password', label: 'Password', type: 'password' },
 ];
 
 //  State
@@ -111,29 +56,41 @@ function validateForm() {
 }
 
 //  Submit
-async function handleSubmit() {
-  if (!validateForm()) return;
+async function updateUser(form_data) {
+  // if (!validateForm()) return;
 
   try {
     const res = await apiFetch("/api/auth/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
+      body: JSON.stringify(form_data),
     });
     const data = await res.json();
 
     if (res.ok) {
       success.value = true;
       message.value = data.message || "Registration successful!";
+      toast.success(message.value);
       Object.keys(form).forEach(k => (form[k] = ""));
+      toast.success("Registration successful!");
+      router.push("/api/login");
     } else {
       success.value = false;
       message.value = data.error || "Registration failed.";
+      toast.error(message.value);
+      // flash("Error: " + err.message, "danger");
+      console.error("Registration error:", message.value);
     }
   } catch (err) {
     success.value = false;
     message.value = "Server error.";
+    toast.error(message.value);
+    // flash("Error: " + err.message, "danger");
+    console.error("Registration error:", err);
   }
+}
+async function closeModal() {
+   router.push("/api/login");    
 }
 </script>
 
@@ -146,6 +103,7 @@ async function handleSubmit() {
   background: #f8f9fa;
   padding-top: 40px;
 }
+
 .card {
   width: 100%;
   background: #ffffff;

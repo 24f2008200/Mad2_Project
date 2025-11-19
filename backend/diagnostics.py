@@ -1,6 +1,7 @@
-from flask import Blueprint, jsonify, request
-from backend.app import db
+from flask import Blueprint, app, jsonify, request
+from backend.app import db 
 from backend.models import Reservation
+
 
 diagnostics_bp = Blueprint("diagnostics", __name__)
 
@@ -15,16 +16,18 @@ def diagnostics():
     rs = Reservation.query.filter(
     Reservation.end_time != None,
     Reservation.start_time != None,
-    ((Reservation.parking_fee == 0) | (Reservation.parking_fee == None))
+    # ((Reservation.parking_fee == 0) | (Reservation.parking_fee == None))
         ).all()
-
     sum = 0
     for r in rs:
         delta = r.end_time - r.start_time
         hours = delta.total_seconds() / 3600
-        fee = round(hours * 10, 2)  # Assuming a rate of $10 per hour
+        fee = round(hours * 10, 2)  # Assuming a rate of 10 per hour
         r.parking_fee = fee
         db.session.add(r)
         sum += fee
     db.session.commit()
     return jsonify({"status": "success", "data": data, "total_fee": sum}), 200
+
+
+    

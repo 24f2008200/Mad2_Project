@@ -1,0 +1,57 @@
+Was the student able to run the application within 10 minutes?(if not, examiners are suggested to close the exam there itself)	True
+2	Does the application employ session or token based authentication and RBAC?(select partially if anyone is done)	True
+3	Has the student used allowed frameworks/tech stack for the project?	True
+4	Are APIs created for the backend?	True
+5	Can the admin create a new lot in the application? | Does the admin dashboard display total number of doctors, patients, and appointments?	True
+6	Can the admin increase/decrease the spots for a lot? | Can the admin add/update doctor profile details such as name, specialization etc., and also patient info if needed?	True
+7	Can the admin delete an existing lot in the application if all the spots in it are empty? | Can admin view all upcoming and past appointments?	True
+8	Can a user book a spot in a lot in the application? | Can admin remove/blacklist doctors and patients from the system?	True
+9	Can a user select the available lot of its choice in the application? | Does the doctor’s and patient's dashboard display list of patients and upcoming appointments for the day/week?	True
+10	Can a user occupy a spot in a lot? | Does the doctor's dashboard have the option to mark appointments as Completed or Cancelled?
+11	Can a user vacate/release an occupied spot in a lot? | Can a doctor provide their availability for the next 7 days?	True
+12	Can the admin view the status of each parking spot? | Can a doctor update patient treatment history like provide diagnosis, treatment and prescriptions?	True
+13	Can admin view the details of each vehicle/user parked? | Does the patients’ dashboard display all available specialization/departments?	True
+14	Can the admin view all the registered users of the app? | Does the patients’ dashboard display availability of doctors for the coming 7 days (1 week) and can they read doctors profiles?	True
+15	Can the admin view summary charts for all the parking lot/spot? | Does the app prevent multiple appointments at the same date and time for the same doctor?	True
+16	Does the app record the timestamp in between parking in and parking out to calculate parking price? | Does the patients’ dashboard show past appointment history with diagnosis and prescriptions?	True
+17	Can a user view the summary charts on his/her parking? | Can a patient book as well as cancel appointments with doctors?	True
+18	Is the admin automatically added when a new database is created?	True
+19	Are scheduled jobs and daily reminers implemented with Celery and working for sending monthly user's parking reports/appointment reports (doctors)/visit reminders (patients)?	True
+20	Are user triggered jobs implemented for details for the parking completed by the user/treatment details to the doctor and/or patients?	True
+#	Question	Is MCQ
+21	Is caching with expiry implemented using Redis?	True
+22	Was the students able to answer first descriptive question correctly?	True
+23	Was the students able to answer second descriptive question correctly?	True
+24	Was the students able to answer third descriptive question correctly?	True
+
+
+
+
+/static/<path:filename> static {'GET', 'HEAD', 'OPTIONS'}
+/api/admin/diagnostics diagnostics.diagnostics {'GET', 'HEAD', 'POST', 'OPTIONS'}
+/api/auth/register auth.registerresource {'POST', 'OPTIONS'}
+/api/auth/login auth.loginresource {'POST', 'OPTIONS'}
+/api/auth/logout auth.logoutresource {'POST', 'OPTIONS'}
+/api/auth/ping auth.pingresource {'GET', 'HEAD', 'OPTIONS'}
+/api/admin/lots admin.lotsresource {'GET', 'HEAD', 'POST', 'OPTIONS'}
+/api/admin/lots/<int:lot_id> admin.lotresource {'DELETE', 'PUT', 'OPTIONS'}
+/api/admin/slots/<int:slot_id> admin.slotresource {'DELETE', 'OPTIONS'}
+/api/admin/users admin.usersresource {'GET', 'HEAD', 'OPTIONS'}
+/api/admin/reservations admin.reservationsresource {'GET', 'HEAD', 'OPTIONS'}
+/api/admin/summary admin.summaryresource {'GET', 'HEAD', 'OPTIONS'}
+/api/admin/search admin.searchresource {'GET', 'HEAD', 'OPTIONS'}
+/api/admin/reports/occupancy admin.occupancyreportresource {'GET', 'HEAD', 'OPTIONS'}
+/api/admin/reports/revenue admin.revenuereportresource {'GET', 'HEAD', 'OPTIONS'}
+/api/admin/reports/reservations admin.reservationreportresource {'GET', 'HEAD', 'OPTIONS'}
+/api/admin/reports/pdf admin.pdfreportresource {'POST', 'OPTIONS'}
+/api/user/pincodes user.pincodesresource {'GET', 'HEAD', 'OPTIONS'}
+/api/user/reservations user.userreservationsresource {'GET', 'HEAD', 'OPTIONS'}
+/api/user/lots user.lotsresource {'GET', 'HEAD', 'OPTIONS'}
+/api/user/book user.bookspotresource {'POST', 'OPTIONS'}
+/api/user/release/<int:res_id> user.releasespotresource {'POST', 'OPTIONS'}
+/api/user/profile/<int:user_id> user.userprofileresource {'GET', 'HEAD', 'OPTIONS'}
+/api/user/reports/summary user.usersummaryresource {'GET', 'HEAD', 'OPTIONS'}
+/api/user/reports/monthly user.monthlyreportresource {'GET', 'HEAD', 'OPTIONS'}
+/api/user/reports/location user.locationreportresource {'GET', 'HEAD', 'OPTIONS'}
+/api/user/reports/activity user.activityreportresource {'GET', 'HEAD', 'OPTIONS'}
+/api/user/reports/recent user.recentreservationsresource {'GET', 'HEAD', 'OPTIONS'}

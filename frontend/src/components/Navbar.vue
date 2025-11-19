@@ -27,44 +27,37 @@
           <li class="nav-item">
             <RouterLink class="nav-link" to="/api/admin/summary">Summary</RouterLink>
           </li>
+
+          <!-- Replaced radio buttons with clickable links -->
           <li class="nav-item d-flex align-items-center ms-3">
-            <input class="form-check-input me-1" type="radio" id="searchUser" value="user"
-              v-model="searchStore.searchType" />
-            <label class="form-check-label text-white" for="searchUser">User</label>
+            <RouterLink class="nav-link text-info" :class="{ active: searchStore.searchType === 'user' }"
+              @click.prevent="setSearchType('user')" to="/api/users">
+              User
+            </RouterLink>
           </li>
 
           <li class="nav-item d-flex align-items-center ms-3">
-            <input class="form-check-input me-1" type="radio" id="searchReservation" value="reservation"
-              v-model="searchStore.searchType" />
-            <label class="form-check-label text-white" for="searchReservation">Reservation</label>
-          </li>
-          <li class="nav-item d-flex align-items-center ms-3">
-            <input class="form-check-input me-1" type="radio" id="searchReservation" value="lot"
-              v-model="searchStore.searchType" />
-            <label class="form-check-label text-white" for="searchReservation">Lot</label>
+            <RouterLink class="nav-link text-info" :class="{ active: searchStore.searchType === 'reservation' }"
+              @click.prevent="setSearchType('reservation')" to="/api/users">
+              Reservation
+            </RouterLink>
           </li>
 
-          <!-- <li class="nav-item dropdown">
-            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-              Dropdown
-            </a>
-            <ul class="dropdown-menu">
-              <li><a class="dropdown-item" href="#">Action</a></li>
-              <li><a class="dropdown-item" href="#">Another action</a></li>
-              <li>
-                <hr class="dropdown-divider">
-              </li>
-              <li><a class="dropdown-item" href="#">Something else here</a></li>
-            </ul>
-          </li> -->
+          <li class="nav-item d-flex align-items-center ms-3">
+            <RouterLink class="nav-link text-info" :class="{ active: searchStore.searchType === 'lot' }"
+              @click.prevent="setSearchType('lot')" to="/api/users">
+              Lot
+            </RouterLink>
+          </li>
+          <li class="nav-item d-flex align-items-center ms-3">
+            <RouterLink class="nav-link text-info" :class="{ active: searchStore.searchType === 'reminder' }"
+              @click.prevent="setSearchType('reminder')" to="/api/users">
+              Reminder Logs
+            </RouterLink>
+          </li>
         </ul>
-        <!-- <form class="d-flex" role="search" @submit.prevent="onSearch">
-          <input v-model="query" class="form-control me-2" type="search" placeholder="Search" aria-label="Search" />
-          <button class="btn btn-outline-success" type="submit">Search</button>
-        </form>
-        <div class="d-flex justify-content-end">
-        </div> -->
       </template>
+
       <!-- User Navbar -->
       <template v-else>
         <ul class="navbar-nav me-auto">
@@ -126,7 +119,7 @@ import { useAuth } from "../stores/auth";
 import { useSearchStore } from "../stores/search";
 import { apiFetch } from "@/api";
 import UserProfileModal from '../components/UserProfileModal.vue';
-const { isLoggedIn, isAdmin, logout,userName } = useAuth();
+const { isLoggedIn, isAdmin, logout, userName } = useAuth();
 
 const userId = ref();
 const show = ref(false);
@@ -139,7 +132,7 @@ const welcomeText = computed(() => {
   if (!isLoggedIn.value) {
     return "Welcome, Guest"
   }
-  return isAdmin.value ? "Welcome to Admin" : userName.value +"'s Dashboard";
+  return isAdmin.value ? "Welcome to Admin" : userName.value + "'s Dashboard";
 })
 
 watch(
@@ -149,6 +142,12 @@ watch(
     searchStore.triggerNavbarAction();
   }
 );
+function setSearchType(type) {
+  searchStore.searchType = type;
+  router.push("/api/users");
+  searchStore.triggerNavbarAction();
+}
+
 function openProfile() {
   const { isAdmin, userName, userId: uid } = useAuth()
   userId.value = parseInt(uid.value)
@@ -185,13 +184,22 @@ async function doLogout() {
   font-weight: bold;
   color: #ff4444;
 }
+
 .nav-link {
   color: #fff !important;
 }
+
+.nav-link.active {
+  font-weight: bold;
+  text-decoration: underline;
+  color: #0d6efd !important;
+}
+
 .nav-link.router-link-active {
   font-weight: bold;
   text-decoration: underline;
 }
+
 .btn {
   min-width: 90px;
   height: 38px;
@@ -201,30 +209,37 @@ async function doLogout() {
   transition: all 0.25s ease-in-out;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
+
 .btn-search {
   background-color: #0d6efd;
   color: white;
 }
+
 .btn-search:hover {
   background-color: #0b5ed7;
   box-shadow: 0 0 8px rgba(13, 110, 253, 0.5);
 }
+
 .btn-profile {
   background-color: #20c997;
   color: white;
 }
+
 .btn-profile:hover {
   background-color: #17a589;
   box-shadow: 0 0 8px rgba(32, 201, 151, 0.5);
 }
+
 .btn-logout {
   background-color: #dc3545;
   color: white;
 }
+
 .btn-logout:hover {
   background-color: #bb2d3b;
   box-shadow: 0 0 8px rgba(220, 53, 69, 0.5);
 }
+
 .search-input {
   width: 200px;
   border-radius: 6px;
@@ -234,6 +249,7 @@ async function doLogout() {
   padding: 6px 10px;
   transition: all 0.2s;
 }
+
 .search-input:focus {
   outline: none;
   border-color: #0d6efd;

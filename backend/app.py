@@ -13,6 +13,7 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 INSTANCE_DIR = os.path.join(os.path.dirname(BASE_DIR), "instance")
 os.makedirs(INSTANCE_DIR, exist_ok=True)
+my_app = None
 
 
 
@@ -110,8 +111,11 @@ if __name__ == "__main__":
     else:
         large_data = 0
     app = create_app(use_redis,large_data)
+    my_app = app
     port = int(os.environ.get("FLASK_PORT", 5000))
     # with app.app_context():
     #     for rule in app.url_map.iter_rules():
     #         print(rule, rule.endpoint, rule.methods)
     app.run(debug=True, port=port)
+
+

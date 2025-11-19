@@ -1,0 +1,46 @@
+How to Install and Run Redis
+On macOS (with Homebrew)
+brew install redis
+brew services start redis
+
+On Ubuntu / Debian
+sudo apt install redis-server
+sudo systemctl enable redis-server
+sudo systemctl start redis-server
+
+On Windows
+
+You can install it via Docker:
+
+docker run -d -p 6379:6379 redis
+
+
+Then Redis is running locally on:
+
+redis://localhost:6379
+
+⚙️ 6. How Celery Connects to Redis
+
+In your celery_app.py:
+
+CELERY_BROKER_URL = "redis://localhost:6379/0"
+CELERY_RESULT_BACKEND = "redis://localhost:6379/0"
+
+
+That tells Celery:
+
+“Use the Redis server running on port 6379 as both the message broker and the place to store results.”
+
+📦 7. Quick Mental Picture
+
+Imagine Redis as a queue table like this:
+
+Task ID	Task Name	Args	Status
+123abc	daily_reminder_runner	None	queued
+124bcd	generate_export_csv	{"user_id": 42}	queued
+
+🧠 Celery Beat adds new rows (tasks)
+
+👷 Celery Workers read & remove rows as they complete them
+
+Redis keeps everything moving safely and quickly

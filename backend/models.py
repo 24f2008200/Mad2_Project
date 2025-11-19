@@ -17,7 +17,7 @@ class MyModel(db.Model):
         return cls.__name__.lower()
 
     def to_dict(self):
-        """Convert SQLAlchemy model instance into dictionary (safe for JSON)."""
+        """Convert SQLAlchemy model instance into dictionary (safe for JSON).""" 
         result = {}
         for column in self.__table__.columns:
             value = getattr(self, column.name)
@@ -41,6 +41,10 @@ class User(MyModel):
     address = db.Column(db.String(512))
     receive_reminders = db.Column(db.Boolean, default=True)
     reminder_time = db.Column(db.String(10))
+    google_chat_webhook = db.Column(db.String(512))
+    last_login = db.Column(db.DateTime, nullable=True)
+    last_reminder_sent_at = db.Column(db.DateTime, nullable=True)
+
 
     reservations = db.relationship("Reservation", back_populates="user")
 
@@ -52,6 +56,15 @@ class User(MyModel):
     @hybrid_property
     def billing(self):
         return sum( [ r.parking_fee for r in self.reservations if r.parking_fee != None] )
+    @hybrid_property
+    def last_active(self):
+        last = None
+        for r in self.reservations:
+            if not last or (r.start_time and r.start_time > last):
+                last = r.start_time
+            if r.end_time and (not last or r.end_time > last):
+                last = r.end_time
+        return last
 
 
 class ParkingLot(MyModel):
@@ -82,6 +95,13 @@ class ParkingLot(MyModel):
     def number_of_spots(self):
         return len(self.spots)
     
+    @hybrid_property
+    def billing(self):
+        total = 0.0
+        for spot in self.spots:
+            total += spot.billing
+        return total
+    
     @number_of_spots.expression
     def number_of_spots(cls):
         return (
@@ -96,6 +116,9 @@ class ParkingLot(MyModel):
             raise ValueError(f"Spot {spot_id} does not exist in lot {self.name}")
         if spot.status == "O":
             raise ValueError(f"Cannot delete spot {spot_id} because it is occupied")
+        reservations = Reservation.query.filter_by(spot_id=spot.id).all()
+        for res in reservations:
+            db.session.delete(res)
         self.spots.remove(spot)
         db.session.delete(spot)
         db.session.flush() 
@@ -120,8 +143,9 @@ class ParkingLot(MyModel):
             if len(to_remove) < (current_count - new_count):
                 raise ValueError("Not enough available spots to remove")
             for spot in to_remove:
-                self.spots.remove(spot)
-                db.session.delete(spot)
+                self.delete_spot(spot.id)
+                # self.spots.remove(spot)
+                # db.session.delete(spot)
 
         self.max_slots = len(self.spots)
         db.session.flush()
@@ -131,6 +155,7 @@ class ParkingSpot(MyModel):
     lot_id = db.Column(db.Integer, db.ForeignKey("parkinglot.id"), nullable=False)
     status = db.Column(db.String(1), nullable=False, default="A")  # A=available, O=occupied
     label = db.Column(db.String(50))
+    premium = db.Column(db.String(1), default="N")  # N=normal, P=premium V=vip
     reservations = db.relationship("Reservation", back_populates="spot", lazy=True)
     @property
     def occupied(self):
@@ -141,7 +166,13 @@ class ParkingSpot(MyModel):
             if r.end_time is None:
                 return r
         return None
-
+    @hybrid_property
+    def billing(self):
+        total = 0.0
+        for res in self.reservations:
+            if res.parking_fee:
+                total += res.parking_fee
+        return total
     @property
     def current_vehicle_number(self):
         res = self.current_reservation
@@ -193,7 +224,7 @@ class Reservation(MyModel):
     parking_fee = db.Column(db.Float, nullable=True)
 
 
-    # Relationships
+    # Relationships 
     user = db.relationship("User", back_populates="reservations")
     spot = db.relationship("ParkingSpot", back_populates="reservations")
     
@@ -227,6 +258,13 @@ class Reservation(MyModel):
     #     self.parking_fee = cost
     #     self.active = False
 
+class ReminderJob(MyModel):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, nullable=False)
+    scheduled_at = db.Column(db.DateTime, nullable=False)  # exact send time (UTC)
+    status = db.Column(db.String(20), default="pending")   # pending/sent/skipped
+    # created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    sent_at = db.Column(db.DateTime, nullable=True)
 
 def model_to_dict(obj):
     result = {}

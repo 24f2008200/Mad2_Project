@@ -57,51 +57,15 @@ const props = defineProps({
 const emit = defineEmits(["save", "cancel"])
 const localRow = reactive({ ...props.row })
 
-// function parseDateTime(val) {
-//   if (!val) return { date: "", time: "" }
-//   const d = new Date(val)
-//   if (isNaN(d)) return { date: "", time: "" }
 
-//   const yyyy = d.getFullYear()
-//   const mm = String(d.getMonth() + 1).padStart(2, "0")
-//   const dd = String(d.getDate()).padStart(2, "0")
-//   const hh = String(d.getHours()).padStart(2, "0")
-//   const min = String(d.getMinutes()).padStart(2, "0")
-
-//   return {
-//     date: `${yyyy}-${mm}-${dd}`,
-//     time: `${hh}:${min}`
-//   }
-// }
 watchEffect(() => {
     const newRow = props.row
     if (!newRow) return
     Object.assign(localRow, newRow)
-    //   props.fields.forEach(f => {
-    //     if (f.type === "datetime" && newRow[f.key]) {
-    //       const { date, time } = parseDateTime(newRow[f.key])
-    //       localRow[f.key + "_date"] = date
-    //       localRow[f.key + "_time"] = time
-    //     }
-    //   })
 })
 
 function onSave() {
     const output = { ...localRow }
-
-    // recombine datetime fields
-    //   props.fields.forEach(f => {
-    //     if (f.type === "datetime") {
-    //       const d = output[f.key + "_date"]
-    //       const t = output[f.key + "_time"]
-    //       if (d && t) {
-    //         output[f.key] = `${d}T${t}:00` // local datetime
-    //       }
-    //       delete output[f.key + "_date"]
-    //       delete output[f.key + "_time"]
-    //     }
-    //   })
-
     emit("save", output)
 }
 </script>

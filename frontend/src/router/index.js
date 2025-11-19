@@ -26,8 +26,9 @@ const routes = [
   // Admin routes
   { path: "/api/admin", component: AdminDashboard, meta: { requiresAuth: true, role: "admin" } },
   { path: "/api/users", component: AdminView, meta: { requiresAuth: true, role: "admin" } },
-  { path: "/api/admin/summary", component: Summary, meta: { requiresAuth: true } },
-  { path: "/search", component: Search, meta: { requiresAuth: true, role: "admin" } }
+  { path: "/api/admin/summary", component: Summary, meta: { requiresAuth: true, role: "admin"  } },
+  { path: "/search", component: Search, meta: { requiresAuth: true, role: "admin" } },
+  {path: "/api/reminders/logs", component: AdminView, meta: { requiresAuth: true, role: "admin" } },
 ];
 
 const router = createRouter({
@@ -41,7 +42,7 @@ router.beforeEach((to, from, next) => {
   const isAdmin = localStorage.getItem("is_admin") === "true";
 
   if (to.meta.requiresAuth && !token) {
-    // Not logged in → send to login
+    // Not logged in → send to login 
     return next("/api/login");
   }
 

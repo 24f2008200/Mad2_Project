@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8" />
+    <title>Vue SessionStorage Demo</title>
+
+    <style>
+        .heading {
+            color: yellow;
+        }
+
+        .raw-text {
+            color: blue;
+        }
+    </style>
+
+    <!-- Vue 3 CDN -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+</head>
+
+<body>
+    <div id="app">
+        <p :class="[iteration ? 'heading' : 'raw-text']">
+            {{ displayText }}
+        </p>
+    </div>
+
+    <script>
+        const { createApp } = Vue;
+
+        createApp({
+            data() {
+                return {
+                    iteration: 1
+                };
+            },
+            computed: {
+                displayText() {
+                    let result = "";
+                    for (let i = 0; i <= this.iteration; i++) {
+                        result += sessionStorage.getItem("data") || "";
+                    }
+                    return result;
+                }
+            },
+            mounted() {
+                const iteration = sessionStorage.getItem("iteration")
+                    ? parseInt(sessionStorage.getItem("iteration")) + 2
+                    : 1;
+
+                if (iteration >= 1 && iteration < 7) {
+                    let data = sessionStorage.getItem("data");
+                    if (!data) {
+                        sessionStorage.setItem("data", "JS");
+                    } else {
+                        sessionStorage.setItem("data", data + data);
+                    }
+
+                    sessionStorage.setItem("iteration_No" + iteration, iteration);
+                    sessionStorage.setItem("iteration", iteration);
+                    window.location.reload();
+                }
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>

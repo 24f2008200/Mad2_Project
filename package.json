@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "lodash-es": "^4.17.21",
+    "vue-toastification": "^1.7.14"
+  }
+}

@@ -1,0 +1,24 @@
+src/
+│
+├─ components/
+│   ├─ AppNavbar.vue
+│   ├─ EditModal.vue
+│   ├─ DataTable.vue
+│   ├─ RowEditor.vue
+│   └─ UserProfileModal.vue
+│
+├─ views/
+│   ├─ AdminView.vue
+│   └─ UserView.vue
+│
+├─ composables/
+│   ├─ useSearch.js
+│   ├─ useSearchEndpoint.js
+│   └─ useModal.js
+│
+├─ constants/
+│   └─ columns.js
+│
+└─ stores/
+    ├─ auth.js
+    └─ search.js
