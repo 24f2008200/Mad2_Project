@@ -17,7 +17,7 @@
       </button>
     </div>
 
-    <!-- Add/Edit Lot Modal -->
+    <!-- Add/Edit Lot Modal --> 
     <div class="modal fade" id="lotModal" tabindex="-1" aria-labelledby="lotModalLabel" aria-hidden="true">
       <div class="modal-dialog">
         <div class="modal-content">

@@ -25,9 +25,10 @@ api = Api(admin_bp)
 class LotsResource(Resource):
     method_decorators = [admin_required]
 
+    @cache.cached(timeout=120, key_prefix="all_lots")
     def get(self):
         return  get_all_lots(), 200
-
+    
     def post(self):#   Create new parking lot
         data = request.json
         lot = ParkingLot(
@@ -83,6 +84,7 @@ class SlotResource(Resource):
     method_decorators = [admin_required]
 
     def delete(self, slot_id):
+        print(slot_id)
 
         slot = ParkingSpot.query.get_or_404(int(slot_id))
         if slot.status == "O":
@@ -141,6 +143,7 @@ class ReservationsResource(Resource):
 class SummaryResource(Resource):
     method_decorators = [admin_required]
 
+    @cache.cached(timeout=180, key_prefix="summary_data")
     def get(self):
         total_users = User.query.count()
         active_reservations = Reservation.query.filter(
@@ -166,6 +169,7 @@ class SummaryResource(Resource):
 class OccupancyReportResource(Resource):
     method_decorators = [admin_required]
 
+    @cache.cached(timeout=120, key_prefix="report_occupancy")
     def get(self):
         lots = ParkingLot.query.all()
         data = []
@@ -178,6 +182,7 @@ class OccupancyReportResource(Resource):
 class RevenueReportResource(Resource):
     method_decorators = [admin_required]
 
+    @cache.cached(timeout=120, key_prefix="report_revenue")
     def get(self):
         results = (
             db.session.query(
@@ -221,7 +226,8 @@ class RevenueReportResource(Resource):
 
 class ReservationReportResource(Resource):
     method_decorators = [admin_required]
-
+    
+    @cache.cached(timeout=120, key_prefix="report_reservations")
     def get(self):
         results = (
             db.session.query(

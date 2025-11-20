@@ -10,7 +10,9 @@ python -m backend.init_db
 python -m init_db.app
 python -m backend.app
 
-python -m backend.app redis L 
+python -m backend.app redis 0 
+python -m backend.app redis 1 
+python -m backend.app redis 2 
 
 
 cd frontend

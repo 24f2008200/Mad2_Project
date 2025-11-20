@@ -9,13 +9,14 @@ from seed_data import *
 
 default_google_chat_webhook = "https://chat.googleapis.com/v1/spaces/AAQAwtQ63ag/messages?key=AIzaSyDdI0hCZtE6vySjMm-WEfRq3CPzqKqqsHI&token=5MYSUrPN6reLnOlxNcejvgkOJ35PtxS2QRY6c_FTM7c"
 
-size = 0
+size = 1
 
 no_users = 5 if size == 0 else 25 if size ==1 else 50
 no_lots = 5 if size == 0 else 10 if size ==1 else 20
 no_drivers = 5 if size == 0 else 50 if size ==1 else 100
 no_cars = 5 if size == 0 else 50 if size ==1 else 100
-
+no_of_back_days= 30 if size == 0 else 60 if size ==1 else 90
+no_of_back_days *= 2
 
 
 app = create_app(False,size)
@@ -38,7 +39,7 @@ with app.app_context():
     db.session.add(admin)
     admin2 = User(
         name="Baskaran",
-        email="dad@makshi.in",
+        email="24f2008200@ds.study.iitm.ac.in",
         password=generate_password_hash("123"),
         role="user",
         is_admin=False,
@@ -49,6 +50,19 @@ with app.app_context():
         google_chat_webhook = default_google_chat_webhook
     )
     db.session.add(admin2)
+    admin3 = User(
+        name="Madhavi",
+        email="dad@makshi.in",
+        password=generate_password_hash("123"),
+        role="user",
+        is_admin=False,
+        mobile="123454321",
+        address="44, Lalbagh Road, Lucknow",
+        receive_reminders = True,
+        reminder_time = "18:10",
+        google_chat_webhook = default_google_chat_webhook
+    )
+    db.session.add(admin3)
     users = []
     for i in range(no_users):
         name = names[i]
@@ -208,8 +222,8 @@ with app.app_context():
 
         return reservations
 
-    reservations = generate_reservations(30)
-    no_users = len(names)
+    reservations = generate_reservations(no_of_back_days)
+    #no_users = len(names)
     for r in reservations:
         res = Reservation(
         user_id= random.randint(1, no_users),

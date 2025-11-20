@@ -73,7 +73,7 @@ async function updateUser(form_data) {
       toast.success(message.value);
       Object.keys(form).forEach(k => (form[k] = ""));
       toast.success("Registration successful!");
-      router.push("/api/login");
+      router.push("/login");
     } else {
       success.value = false;
       message.value = data.error || "Registration failed.";
@@ -90,7 +90,7 @@ async function updateUser(form_data) {
   }
 }
 async function closeModal() {
-   router.push("/api/login");    
+   router.push("/login");    
 }
 </script>
 

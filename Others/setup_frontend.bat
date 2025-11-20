@@ -57,7 +57,7 @@ echo import Admin from "./views/Admin.vue";
 echo.
 echo const routes = [
 echo   ^{ path: "/", component: Home ^},
-echo   ^{ path: "/api/admin", component: Admin ^}
+echo   ^{ path: "/admin", component: Admin ^}
 echo ];
 echo.
 echo const router = createRouter(^{
@@ -104,7 +104,7 @@ echo   ^<nav class="navbar navbar-expand-lg navbar-dark bg-dark px-3"^>
 echo     ^<a class="navbar-brand" href="#"^>Vehicle Parking^</a^>
 echo     ^<div class="navbar-nav ms-auto"^>
 echo       ^<RouterLink class="nav-link" to="/"^>Home^</RouterLink^>
-echo       ^<RouterLink class="nav-link" to="/api/admin"^>Admin^</RouterLink^>
+echo       ^<RouterLink class="nav-link" to="/admin"^>Admin^</RouterLink^>
 echo     ^</div^>
 echo   ^</nav^>
 echo ^</template^>

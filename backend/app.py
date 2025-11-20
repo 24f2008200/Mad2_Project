@@ -3,6 +3,7 @@ from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_cors import CORS
+from datetime import timedelta
 
 import redis
 from backend.extensions import db, jwt ,cache
@@ -21,8 +22,18 @@ my_app = None
 
 def create_app(use_redis = False, large_data = 0):
     load_dotenv()
-    app = Flask(__name__, instance_relative_config=True)
+    env_use_redis = os.getenv("USE_REDIS")
+    env_large_data = os.getenv("DATA_SIZE")
+    if env_use_redis is not None:
+        use_redis = env_use_redis.lower() in ("1", "true", "yes", "on")
+    if env_large_data is not None:
+        try:
+            large_data = int(env_large_data)
+        except ValueError:
+            raise ValueError(f"Invalid integer for DATA_SIZE: {env_large_data}")
 
+    app = Flask(__name__, instance_relative_config=True)
+    # print (large_data)
     CORS(app,
      resources={r"/*": {"origins": {"http://localhost:5173", "http://127.0.0.1:5173"}}},
      supports_credentials=True,
@@ -39,6 +50,8 @@ def create_app(use_redis = False, large_data = 0):
     # Config
     app.config['SECRET_KEY'] = os.getenv("SECRET_KEY", "devsecret")
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(minutes=30)
+    app.config["JWT_REFRESH_TOKEN_EXPIRES"] = timedelta(days=30)
     app.config['JWT_SECRET_KEY'] = os.getenv("JWT_SECRET_KEY", "super-secret-key")
     app.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{os.path.join(INSTANCE_DIR, data_base)}"
     app.config["CORS_AUTOMATIC_OPTIONS"] = True
@@ -50,7 +63,7 @@ def create_app(use_redis = False, large_data = 0):
                 "CACHE_REDIS_HOST": "localhost",
                 "CACHE_REDIS_PORT": 6379,
                 "CACHE_REDIS_DB": 1,
-                "CACHE_DEFAULT_TIMEOUT": 60,
+                "CACHE_DEFAULT_TIMEOUT": 300,
             })
             cache.init_app(app)
             print("Redis mode enabled")
@@ -105,7 +118,7 @@ if __name__ == "__main__":
     large_data = False
     if len(sys.argv) > 1 and sys.argv[1].lower() == "redis":
         use_redis = True
-    if len(sys.argv) > 2:
+    if len(sys.argv) >= 2:
         arg = sys.argv[2].lower()
         large_data = int(arg) if arg.isdigit() else 0
     else:

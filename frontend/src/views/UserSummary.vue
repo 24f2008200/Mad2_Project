@@ -23,24 +23,30 @@
     </div>
 
     <div class="row">
-      <!-- <div class="col-lg-8 mb-4">
+      <div class="col-lg-8 mb-4">
         <div class="card h-100">
           <div class="card-header">Monthly Expenses ({{ selectedYear }})</div>
           <div class="card-body">
-            <canvas id="monthlyExpensesChart" height="140"></canvas>
+            <div style="height: 300px;">
+              <canvas id="monthlyExpensesChart"></canvas>
+            </div>
+
             <div class="mt-3 d-flex justify-content-end">
               <button class="btn btn-outline-secondary btn-sm me-2" @click="downloadCsv('monthly')">Export CSV</button>
               <button class="btn btn-primary btn-sm" @click="openDetails('monthly')">View details</button>
             </div>
           </div>
         </div>
-      </div> -->
+      </div>
 
-      <!-- <div class="col-lg-4 mb-4">
+      <div class="col-lg-4 mb-4">
         <div class="card h-100">
           <div class="card-header">Location-wise Spend (Top locations)</div>
           <div class="card-body">
-            <canvas id="locationSpendChart" height="220"></canvas>
+            <div style="height: 300px;">
+              <canvas id="locationSpendChart"></canvas>
+            </div>
+
             <ul class="list-group list-group-flush mt-3">
               <li class="list-group-item d-flex justify-content-between align-items-center" v-for="loc in topLocations"
                 :key="loc.location">
@@ -55,7 +61,7 @@
             </ul>
           </div>
         </div>
-      </div> -->
+      </div>
     </div>
 
     <!-- Other reports -->
@@ -64,7 +70,10 @@
         <div class="card h-100">
           <div class="card-header">Reservation Activity (last 6 months)</div>
           <div class="card-body">
-            <canvas id="activityChart" height="140"></canvas>
+            <div style="height: 300px;">
+              <canvas id="activityChart"></canvas>
+            </div>
+
           </div>
         </div>
       </div>
@@ -84,13 +93,19 @@
               </thead>
               <tbody>
                 <tr v-for="r in recentReservations" :key="r.id">
-                  <td>{{ r.lot_name }}</td>
-                  <td>{{ r.spot_name || r.spot_id }}</td>
-                  <td>{{ formatDate(r.start_time) }}</td>
-                  <td>{{ formatCurrency(r.amount || r.parking_fee || 0) }}</td>
+                  <td>{{ r.lot }}</td>
+                  <td>{{ r.spot || r.spot_id }}</td>
+                  <td>{{ formatDate(r.start) }}</td>
+                  <td>{{ formatCurrency(r.amount || r.fee || 0) }}</td>
                 </tr>
                 <tr v-if="recentReservations.length === 0">
                   <td colspan="4" class="text-center small text-muted p-3">No recent reservations</td>
+                </tr>
+                <tr>
+                  <div class="container mt-4">
+                    <CSVExportCard />
+                  </div>
+
                 </tr>
               </tbody>
             </table>
@@ -123,7 +138,7 @@
 </template>
 
 <script setup>
-
+import CSVExportCard from "@/components/CSVExportCard.vue"
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from "vue-router";
 import { useAuth } from "../stores/auth";
@@ -172,12 +187,13 @@ async function fetchAll() {
   try {
     const year = selectedYear.value
     const [summaryRes, monthlyRes, locationRes, activityRes, recentRes] = await Promise.all([
-      fetchData(`/api/user/reports/summary?year=${year}`),
-      fetchData(`/api/user/reports/monthly?year=${year}`),
-      fetchData(`/api/user/reports/location?year=${year}`),
-      fetchData(`/api/user/reports/activity?months=6`),
-      fetchData(`/api/user/reports/recent`)
+      fetchData(`/api/user/spots?view=summary&year=${year}`),
+      fetchData(`/api/user/spots?view=monthly&year=${year}`),
+      fetchData(`/api/user/spots?view=location&year=${year}`),
+      fetchData(`/api/user/spots?view=activity&months=6`),
+      fetchData(`/api/user/spots?view=recent`)
     ])
+    console.log({ summaryRes, monthlyRes, locationRes, activityRes, recentRes });
 
     // summary cards
     const s = summaryRes || {}
@@ -185,27 +201,34 @@ async function fetchAll() {
       { title: 'Yearly Spend', value: formatCurrency(s.total_spend || 0), hint: 'Total paid for parking this year' },
       { title: 'Avg / month', value: formatCurrency(s.avg_monthly || 0), hint: 'Average monthly spend' },
       { title: 'Reservations', value: s.total_reservations || 0, hint: 'Total reservations this year' },
-      { title: 'Active subscriptions', value: s.active_subscriptions || 0, hint: 'Monthly/season passes' }
+      { title: 'Active Reservations', value: s.active || 0, hint: 'Monthly/season passes' }
     ]
-    console.log(s, summaryCards)
+
     // monthly
-    const m = monthlyRes.data || { months: [], amounts: [] }
-    monthlyData.value.labels = m.months
-    monthlyData.value.amounts = m.amounts
+    monthlyData.value = {
+      labels: monthlyRes.months,   // <-- FIXED
+      amounts: monthlyRes.amounts  // <-- correct
+    }
+    // monthlyData.value.labels = m.months
+    // monthlyData.value.amounts = m.amounts
 
     // location
-    const L = locationRes.data || { locations: [], amounts: [], top: [] }
-    locationData.value.labels = L.locations
-    locationData.value.amounts = L.amounts
-    topLocations.value = L.top || []
+
+    locationData.value = {
+      labels: locationRes.locations,   // <-- FIXED
+      amounts: locationRes.amounts  // <-- correct
+    }
+    // topLocations.value = locationRes.top
 
     // activity
-    const A = activityRes.data || { months: [], counts: [] }
-    activityData.value.labels = A.months
-    activityData.value.counts = A.counts
+    activityData.value = {
+      labels: activityRes.months,
+      counts: activityRes.counts
+    }
+    console.log(recentRes.value)
+    recentReservations.value = recentRes
 
-    recentReservations.value = recentRes.data || []
-
+    console.log(recentReservations.value)
     renderCharts()
   } catch (err) {
     console.error('failed to fetch reports', err)
@@ -220,7 +243,7 @@ async function fetchData(url) {
   });
   if (res.ok) {
     const data = await res.json();
-    console.log(data)
+    // console.log(data)
     return data
   } else { throw new Error("Request failed") }
 }
@@ -237,10 +260,11 @@ function renderCharts() {
       type: 'bar',
       data: {
         labels: monthlyData.value.labels,
-        datasets: [{ label: 'Amount', data: monthlyData.value.amounts, tension: 0.3 }]
+        datasets: [{ label: 'Amount', data: monthlyData.value.amounts }]
       },
       options: { responsive: true, maintainAspectRatio: false }
     })
+
   }
 
   const lCtx = document.getElementById('locationSpendChart')
@@ -299,6 +323,7 @@ onMounted(async () => {
   buildYears()
   fetchAll()
 })
+
 </script>
 
 <style scoped>

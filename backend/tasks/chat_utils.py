@@ -1,8 +1,10 @@
 # backend/tasks/chat_utils.py
+import os ,sys
 import requests
 from flask import current_app
+from dotenv import load_dotenv
 
-default_google_chat_webhook = "https://chat.googleapis.com/v1/spaces/AAQAwtQ63ag/messages?key=AIzaSyDdI0hCZtE6vySjMm-WEfRq3CPzqKqqsHI&token=5MYSUrPN6reLnOlxNcejvgkOJ35PtxS2QRY6c_FTM7c"
+default_google_chat_webhook = os.getenv("GOOGLE_CHAT_HOOK" ,"")
 
 
 def send_google_chat(text ,webhook_url = default_google_chat_webhook):

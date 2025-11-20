@@ -34,6 +34,7 @@ import DataTable from "@/components/DataTable.vue";
 import RowEditor from "@/components/RowEditor.vue";
 
 const userCols = [
+
   { key: "id", label: "ID", filterType: "select", type: "noedit" },
   { key: "name", label: "Name", type: "text" },
   { key: "mobile", label: "Mobile", type: "number" },
@@ -41,10 +42,11 @@ const userCols = [
   { key: "email", label: "E-Mail", type: "text" },
   { key: "rev", label: "Revenue" },
   { key: "last_login", label: "Last Seen" },
-  { key: "edit", label: "Edit", type: "action" }
+  { key: "edit", label: "Edit", type: "action" },
 ];
 
 const reservationCols = [
+ 
   { key: "id", label: "ID", filterType: "select", type: "noedit" },
   { key: "label", label: "Spot", type: "text" },
   { key: "user_name", label: "User", type: "text" },
@@ -54,7 +56,7 @@ const reservationCols = [
   { key: "driver_name", label: "Driver", type: "text" },
   { key: "driver_contact", label: "Contact", type: "number" },
   { key: "total_earnings", label: "Revenue", type: "number" },
-  { key: "edit", label: "Edit", type: "action" }
+   { key: "edit", label: "Edit", type: "action" },
 ];
 const lotCols = [
   { key: "id", label: "ID", filterType: "select", type: "noedit" },

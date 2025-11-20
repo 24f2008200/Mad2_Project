@@ -9,7 +9,7 @@
       <template v-if="!isLoggedIn">
         <ul class="navbar-nav me-auto">
           <li class="nav-item">
-            <RouterLink class="nav-link" to="/api/login">Login</RouterLink>
+            <RouterLink class="nav-link" to="/login">Login</RouterLink>
           </li>
           <li class="nav-item">
             <RouterLink class="nav-link" to="/register">Register</RouterLink>
@@ -22,36 +22,36 @@
       <template v-else-if="isAdmin">
         <ul class="navbar-nav me-auto">
           <li class="nav-item">
-            <RouterLink class="nav-link" to="/api/admin">Home</RouterLink>
+            <RouterLink class="nav-link" to="/admin">Home</RouterLink>
           </li>
           <li class="nav-item">
-            <RouterLink class="nav-link" to="/api/admin/summary">Summary</RouterLink>
+            <RouterLink class="nav-link" to="/admin/summary">Summary</RouterLink>
           </li>
 
           <!-- Replaced radio buttons with clickable links -->
           <li class="nav-item d-flex align-items-center ms-3">
             <RouterLink class="nav-link text-info" :class="{ active: searchStore.searchType === 'user' }"
-              @click.prevent="setSearchType('user')" to="/api/users">
+              @click.prevent="setSearchType('user')" to="/users">
               User
             </RouterLink>
           </li>
 
           <li class="nav-item d-flex align-items-center ms-3">
             <RouterLink class="nav-link text-info" :class="{ active: searchStore.searchType === 'reservation' }"
-              @click.prevent="setSearchType('reservation')" to="/api/users">
+              @click.prevent="setSearchType('reservation')" to="/users">
               Reservation
             </RouterLink>
           </li>
 
           <li class="nav-item d-flex align-items-center ms-3">
             <RouterLink class="nav-link text-info" :class="{ active: searchStore.searchType === 'lot' }"
-              @click.prevent="setSearchType('lot')" to="/api/users">
+              @click.prevent="setSearchType('lot')" to="/users">
               Lot
             </RouterLink>
           </li>
           <li class="nav-item d-flex align-items-center ms-3">
             <RouterLink class="nav-link text-info" :class="{ active: searchStore.searchType === 'reminder' }"
-              @click.prevent="setSearchType('reminder')" to="/api/users">
+              @click.prevent="setSearchType('reminder')" to="/users">
               Reminder Logs
             </RouterLink>
           </li>
@@ -62,10 +62,24 @@
       <template v-else>
         <ul class="navbar-nav me-auto">
           <li class="nav-item">
-            <RouterLink class="nav-link" to="/api/user">Home</RouterLink>
+            <RouterLink class="nav-link" to="/user">Home</RouterLink>
           </li>
+          <!-- <li class="nav-item d-flex align-items-center ms-3">
+            <RouterLink class="nav-link text-info" :class="{ active: searchStore.searchType === 'reservation' }"
+              @click.prevent="setSearchType('reservation')" to="/users">
+              Reservation
+            </RouterLink>
+          </li> -->
           <li class="nav-item">
-            <RouterLink class="nav-link" to="/api/user/summary">Summary</RouterLink>
+            <RouterLink class="nav-link" to="/user/summary">Summary</RouterLink>
+          </li>
+          <li>
+            <Button @click="startExport">Export CSV</Button>
+            <div v-if="exportStatus">
+              Status: {{ exportStatus }}
+            </div>
+            <a v-if="downloadUrl" :href="downloadUrl">Download CSV</a>
+
           </li>
 
         </ul>
@@ -138,13 +152,13 @@ const welcomeText = computed(() => {
 watch(
   () => searchStore.searchType,
   (newVal) => {
-    router.push("/api/users"); // navigate once type changes
+    router.push("/users"); // navigate once type changes
     searchStore.triggerNavbarAction();
   }
 );
 function setSearchType(type) {
   searchStore.searchType = type;
-  router.push("/api/users");
+  router.push("/users");
   searchStore.triggerNavbarAction();
 }
 

@@ -63,7 +63,7 @@ const props = defineProps({
 
 const filters = ref({})
 
-console.log("DataTable rows:", props.rows);
+// console.log("DataTable rows:", props.rows);
 
 const filteredRows = computed(() => {
   return props.rows.filter(row =>

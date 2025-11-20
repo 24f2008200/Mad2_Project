@@ -57,9 +57,9 @@ async function doLogin() {
 
     // Redirect based on role
     if (data.user.is_admin) {
-      router.push("/api/admin");
+      router.push("/admin");
     } else {
-      router.push("/api/user");
+      router.push("/user");
     }
   } catch (err) {
     console.error("Login failed:", err);

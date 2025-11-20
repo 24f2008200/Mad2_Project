@@ -271,6 +271,50 @@ class UserReservationsResource(Resource):
 
         return result, 200
 
+class ExportCSVResource(Resource):
+    method_decorators = [auth_required]  # user route
+
+    def post(self):
+        user = current_user()
+        user_id = user.id
+        print(user_id)
+        # Create celery job
+        from backend.tasks.export_tasks import export_user_history_csv
+        task = export_user_history_csv.delay(user_id)
+
+        return {
+            "message": "Export started",
+            "task_id": task.id
+        }, 202
+
+class ExportStatusResource(Resource):
+    method_decorators = [auth_required] 
+
+    def get(self, task_id):
+        from celery.result import AsyncResult
+        result = AsyncResult(task_id)
+
+        if result.state == "SUCCESS":
+            filepath = redis_conn.get(f"task:{task_id}:result")
+            return {
+                "status": "completed",
+                "download_url": f"/api/user/download/{task_id}"
+            }
+
+        return {"status": result.state}
+
+class ExportDownloadResource(Resource):
+    method_decorators = [auth_required] 
+
+    def get(self, task_id):
+        filepath = redis_conn.get(f"task:{task_id}:result")
+        if not filepath:
+            return {"error": "File not ready"}, 404
+
+        return send_file(
+            filepath.decode(),
+            as_attachment=True
+        )
 
 api.add_resource(UserProfileResource, "/profile/<int:user_id>")
 
@@ -280,3 +324,6 @@ api.add_resource(SpotActivityResource, "/spots")
 api.add_resource(LotsResource, "/lots")
 api.add_resource(PinCodesResource, "/pincodes")
 api.add_resource(UserReservationsResource, "/reservations")
+api.add_resource(ExportCSVResource, "/export-csv")
+api.add_resource(ExportStatusResource, "/export-status/<string:task_id>")
+

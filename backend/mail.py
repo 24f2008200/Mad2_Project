@@ -30,7 +30,7 @@ def send_email(to_email, subject, html_body, attachments=None):
         s.starttls()
         s.login(SMTP_USER, SMTP_PASS)
         s.send_message(msg)
-        print("✅ Email sent successfully to", to_email)
+        print(" Email sent successfully to", to_email)
 
 
 # --- Test it ---

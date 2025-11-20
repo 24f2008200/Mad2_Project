@@ -48,7 +48,7 @@ const welcomeText = computed(() =>
 function setSearchType(type) {
   searchStore.searchType = type;
   searchStore.triggerNavbarAction();
-  router.push("/api/users");
+  router.push("/users");
 }
 
 function triggerSearch() {
