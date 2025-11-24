@@ -138,7 +138,7 @@ console.log('revRes: ', revRes);
   }
 
   // Reservation activity
-  searchStore.setOpCode("reservation");
+  searchStore.setOpCode("reservations_by_lot");
   const resRes = await apiClient.post('/admin/reports')
   console.log("Reservation Data:", resRes);
   reservationData.value = {
@@ -152,10 +152,11 @@ console.log('revRes: ', revRes);
     ]
   }
   searchStore.setOpCode("summary");
-  const res = await apiClient.post('/admin/reports')
-  if (res.ok) {
-    summary.value = await res.json();
-  }
+  const res = await apiClient.post('/admin/reports');
+// console.log("Summary Data:", res);
+
+    summary.value = res;
+
 
 })
 

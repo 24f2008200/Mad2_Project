@@ -43,13 +43,13 @@ export const useSearchStore = defineStore("search", () => {
   }
 
   function triggerNavbarAction() {
-    if (navbarAction.value) {
+    if (navbarAction.value) { console.log("Triggering navbar action");
       navbarAction.value();
     } else {
 
     }
   }
-  function triggerSearchAction() {
+  function triggerSearchAction() {console.log("Triggering search action");
     if (searchAction.value) {
       searchAction.value();
     } else {

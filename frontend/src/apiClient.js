@@ -1,5 +1,7 @@
 // src/js/apiClient.js
 import { getCommonParams } from '@/searchParams'
+import { useRouter } from "vue-router";
+const router = useRouter();
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "http://localhost:5000") + "/api";
 
@@ -52,6 +54,11 @@ async function request(url, options = {}) {
     try {
         console.log("apiClient URL", url, fetchOptions);
         const res = await fetch(url, fetchOptions);
+        if (res.status >= 400) {
+            console.log("API Response Error:", res.status);
+            router.push("/login"); // redirect to login on error
+            throw new Error(`API error: ${res.status}`);
+        }
         const text = await res.text();
         return text ? JSON.parse(text) : {};
     }

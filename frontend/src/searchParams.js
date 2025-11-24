@@ -10,5 +10,6 @@ export function getCommonParams() {
     searchValue: s.searchValue || null,
     startDate: s.startDate || null,
     endDate: s.endDate || null,
+    opCode: s.opCode || null,
   }
 }

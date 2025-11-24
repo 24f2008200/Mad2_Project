@@ -161,7 +161,7 @@ const startDate = ref(start.toISOString().substring(0, 10))
 function apply() {
   searchStore.startDate = startDate.value;
   searchStore.endDate = endDate.value;
-  searchStore.triggerNavbarAction();
+  searchStore.triggerNavbarAction(); // Notify views to update
 }
 const welcomeText = computed(() => {
   if (!isLoggedIn.value) {
@@ -176,15 +176,17 @@ watch([startDate, endDate], () => {
 
 watch(
   () => searchStore.searchType,
-  (newVal) => {
+  (newVal) => { console.log("Search type changed to", newVal);
     router.push("/views"); // navigate once type changes
-    searchStore.triggerNavbarAction();
+    searchStore.triggerNavbarAction(); // Notify views to update
   }
 );
 function setSearchType(type) {
-  searchStore.searchType = type;
-  router.push("/views");
-  searchStore.triggerNavbarAction();
+   searchStore.setSearchType(type); 
+  //searchStore.searchType = type;
+  console.log("Set search type to", type);
+  // router.push("/views");
+ // searchStore.triggerNavbarAction(); // Notify views to update
 }
 
 function openProfile() {

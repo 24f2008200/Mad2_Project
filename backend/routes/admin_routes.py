@@ -215,9 +215,9 @@ class AdminReportResource(Resource):
 
     def _summary(self):
         key = "admin_report_summary"
-        cached = cache.get(key)
-        if cached:
-            return cached, 200
+        # cached = cache.get(key)
+        # if cached:
+        #     return cached, 200
 
         total_users = User.query.count()
         active_reservations = Reservation.query.filter(Reservation.end_time.is_(None)).count()

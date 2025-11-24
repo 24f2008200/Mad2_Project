@@ -93,7 +93,9 @@ const title = ref("")
 const f_date = (raw) => raw ? new Date(raw).toLocaleString() : '';
 onMounted(() => {
   // Register this page’s action
-  searchStore.setNavbarAction(performSearch);
+  searchStore.setNavbarAction(performSearch); // AdminView operations. Call back to performSearch
+  searchStore.setOpCode(searchStore.searchType);
+  console.log('Mounted: ', searchStore.searchType);
   performSearch();
 })
 
@@ -171,6 +173,13 @@ async function performSearch() {
   const searchType = searchStore.searchType; // reactive searchBy
   const searchValue = searchStore.searchValue;
   const searchBy = searchStore.searchBy;
+  
+  console.log("Performing search for type:", searchType, "by:", searchBy, "opCode:", searchStore.opCode);
+  searchStore.setOpCode(searchType);
+  console.log("Set opCode to", searchType);
+  const opCode = searchStore.opCode; // reactive opCode
+  console.log("opCode is", opCode);
+
 
   title.value = searchType === 'user' ? 'User' : searchType === 'lot' ? 'Lot' : searchType === 'reminder' ? 'Reminder' : 'Reservation'
   if (!searchType) {
@@ -179,7 +188,8 @@ async function performSearch() {
   }
 
   try {
-    searchStore.setOpCode(searchType);
+
+    console.log("Searching for", searchType, "by", searchBy, "value", searchValue, "opCode", opCode);
     if (searchType == "lot") {
       results.value = await apiClient.get('/admin/lots')
     }
