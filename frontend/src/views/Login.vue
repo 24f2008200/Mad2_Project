@@ -21,14 +21,27 @@ import { ref } from "vue";
 import { useRouter } from "vue-router";
 import { useAuth } from "../stores/auth";
 import { apiFetch } from "@/api";
+import { useSearchStore } from "../stores/search";
 const { login } = useAuth();
 
 const email = ref("");
 const password = ref("");
 const error = ref(null);
 const router = useRouter();
+const searchStore = useSearchStore();
+
+const today = new Date()
+const endDate = ref(today.toISOString().substring(0, 10))
+
+const start = new Date()
+start.setMonth(start.getMonth() - 1)
+const startDate = ref(start.toISOString().substring(0, 10))
+
+
 
 async function doLogin() {
+  searchStore.startDate = startDate.value;
+  searchStore.endDate = endDate.value;
   try {
     const res = await apiFetch("/api/auth/login", {
       method: "POST",

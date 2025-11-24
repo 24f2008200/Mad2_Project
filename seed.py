@@ -1,3 +1,4 @@
+import os
 from backend.models import db, User, ParkingLot, ParkingSpot, Reservation
 from datetime import datetime, timedelta, UTC
 from werkzeug.security import generate_password_hash
@@ -5,11 +6,13 @@ from backend.app import create_app, db
 from backend.models import User
 import random
 from seed_data import *
+from dotenv import load_dotenv
 
+load_dotenv()
 
-default_google_chat_webhook = "https://chat.googleapis.com/v1/spaces/AAQAwtQ63ag/messages?key=AIzaSyDdI0hCZtE6vySjMm-WEfRq3CPzqKqqsHI&token=5MYSUrPN6reLnOlxNcejvgkOJ35PtxS2QRY6c_FTM7c"
+default_google_chat_webhook = os.getenv("DEFAULT_GOOGLE_CHAT_WEBHOOK", "https://chat.googleapis.com/v1/spaces/AAQAwtQ63ag/messages?key=AIzaSyDdI0hCZtE6vySjMm-WEfRq3CPzqKqqsHI&token=5MYSUrPN6reLnOlxNcejvgkOJ35PtxS2QRY6c_FTM7c")
 
-size = 1
+size = int(os.getenv("DATA_SIZE", 0))
 
 no_users = 5 if size == 0 else 25 if size ==1 else 50
 no_lots = 5 if size == 0 else 10 if size ==1 else 20
@@ -94,7 +97,7 @@ with app.app_context():
     lots = lots[:no_lots]
     for lot in lots:
         db.session.add(lot)
-        db.session.flush()
+        # db.session.flush()
     db.session.commit()
 
     s =0

@@ -8,10 +8,25 @@ export const useSearchStore = defineStore("search", () => {
   const searchValue = ref("");   // default
   const navbarAction = ref(null);     // will hold a function
   const searchAction = ref(null);
+  const startDate = ref(null);
+  const endDate = ref(null);
+  const opCode = ref(null);
+
   // actions
   function setSearchType(type) {
     searchType.value = type;
   }
+  
+  function setOpCode(nCode) {
+    opCode.value = nCode;
+  }
+
+  function setStartDate(date) {
+    startDate.value = date;
+  }
+  function setEndDate(date) {
+    endDate.value = date;
+  } 
 
   function setSearchValue(nValue) {
     searchValue.value = nValue;
@@ -49,6 +64,12 @@ export const useSearchStore = defineStore("search", () => {
     searchValue,
     navbarAction,
     searchAction,
+    startDate,
+    endDate,
+    opCode,
+    setOpCode,
+    setStartDate,
+    setEndDate,
     setSearchType,
     setSearchValue,
     setNavbarAction,

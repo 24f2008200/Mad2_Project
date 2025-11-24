@@ -25,7 +25,7 @@ const routes = [
 
   // Admin routes
   { path: "/admin", component: AdminDashboard, meta: { requiresAuth: true, role: "admin" } },
-  { path: "/users", component: AdminView, meta: { requiresAuth: true, role: "admin" } },
+  { path: "/views", component: AdminView, meta: { requiresAuth: true, role: "admin" } },
   { path: "/admin/summary", component: Summary, meta: { requiresAuth: true, role: "admin"  } },
   { path: "/search", component: Search, meta: { requiresAuth: true, role: "admin" } },
   // {path: "/api/reminders/logs", component: AdminView, meta: { requiresAuth: true, role: "admin" } },
@@ -35,7 +35,7 @@ const router = createRouter({
   history: createWebHistory(),
   routes,
 });
-
+ 
 
 router.beforeEach((to, from, next) => {
   const token = localStorage.getItem("access_token");

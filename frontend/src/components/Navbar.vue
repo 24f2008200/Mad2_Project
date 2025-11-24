@@ -31,27 +31,27 @@
           <!-- Replaced radio buttons with clickable links -->
           <li class="nav-item d-flex align-items-center ms-3">
             <RouterLink class="nav-link text-info" :class="{ active: searchStore.searchType === 'user' }"
-              @click.prevent="setSearchType('user')" to="/users">
+              @click.prevent="setSearchType('user')" to="/views">
               User
             </RouterLink>
           </li>
 
           <li class="nav-item d-flex align-items-center ms-3">
             <RouterLink class="nav-link text-info" :class="{ active: searchStore.searchType === 'reservation' }"
-              @click.prevent="setSearchType('reservation')" to="/users">
+              @click.prevent="setSearchType('reservation')" to="/views">
               Reservation
             </RouterLink>
           </li>
 
           <li class="nav-item d-flex align-items-center ms-3">
             <RouterLink class="nav-link text-info" :class="{ active: searchStore.searchType === 'lot' }"
-              @click.prevent="setSearchType('lot')" to="/users">
+              @click.prevent="setSearchType('lot')" to="/views">
               Lot
             </RouterLink>
           </li>
           <li class="nav-item d-flex align-items-center ms-3">
             <RouterLink class="nav-link text-info" :class="{ active: searchStore.searchType === 'reminder' }"
-              @click.prevent="setSearchType('reminder')" to="/users">
+              @click.prevent="setSearchType('reminder')" to="/views">
               Reminder Logs
             </RouterLink>
           </li>
@@ -96,6 +96,15 @@
           </button>
         </li>
       </ul> -->
+        <div class="nav">
+
+<div style="display:flex; gap:10px; align-items:center">
+      <input type="date" v-model="startDate" class="form-control search-input"/>
+      <input type="date" v-model="endDate" class="form-control search-input"/>
+
+      <!-- <button class="btn btn-search"  @click="apply">Apply</button> -->
+    </div>
+  </div>
       <form class="d-flex align-items-center gap-3" role="search" @submit.prevent="onSearch">
         <!-- Admin-only search bar -->
         <template v-if="isAdmin">
@@ -131,7 +140,7 @@ import { computed, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useAuth } from "../stores/auth";
 import { useSearchStore } from "../stores/search";
-import { apiFetch } from "@/api";
+import apiClient from '@/apiClient';
 import UserProfileModal from '../components/UserProfileModal.vue';
 const { isLoggedIn, isAdmin, logout, userName } = useAuth();
 
@@ -140,8 +149,20 @@ const show = ref(false);
 let currentUserIsAdmin = ref(false);
 
 const searchStore = useSearchStore();
-// const searchType = searchStore.searchType;
+// const searchType = searchStore.searchType; 
 const router = useRouter();
+const today = new Date()
+const endDate = ref(today.toISOString().substring(0, 10))
+
+const start = new Date()
+start.setMonth(start.getMonth() - 1)
+const startDate = ref(start.toISOString().substring(0, 10))
+
+function apply() {
+  searchStore.startDate = startDate.value;
+  searchStore.endDate = endDate.value;
+  searchStore.triggerNavbarAction();
+}
 const welcomeText = computed(() => {
   if (!isLoggedIn.value) {
     return "Welcome, Guest"
@@ -149,16 +170,20 @@ const welcomeText = computed(() => {
   return isAdmin.value ? "Welcome to Admin" : userName.value + "'s Dashboard";
 })
 
+watch([startDate, endDate], () => {
+  apply();    
+});
+
 watch(
   () => searchStore.searchType,
   (newVal) => {
-    router.push("/users"); // navigate once type changes
+    router.push("/views"); // navigate once type changes
     searchStore.triggerNavbarAction();
   }
 );
 function setSearchType(type) {
   searchStore.searchType = type;
-  router.push("/users");
+  router.push("/views");
   searchStore.triggerNavbarAction();
 }
 
@@ -178,14 +203,18 @@ const onSearch = () => {
 //   searchStore.triggerNavbarAction();
 // }
 async function doLogout() {
-  try {
-    await apiFetch("/api/auth/logout", {
-      method: "POST",
-      credentials: "include",
-    });
-  } catch (e) {
+  apiClient.post("/auth/logout", {}, { withCredentials: true }).catch((e) => {
     console.warn("Logout request failed:", e);
-  }
+  });
+  // try {
+
+  //   await apiFetch("/api/auth/logout", {
+  //     method: "POST",
+  //     credentials: "include",
+  //   });
+  // } catch (e) {
+  //   console.warn("Logout request failed:", e);
+  // }
   localStorage.removeItem("access_token");
   localStorage.removeItem("is_admin");
   logout();

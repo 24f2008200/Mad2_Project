@@ -52,7 +52,8 @@
 import { ref, onMounted } from "vue";
 import { useAuth } from "../stores/auth";
 import LineChart from "../components/LineChart.vue";
-import { apiFetch } from "@/api";
+import apiClient from '@/apiClient';
+import { useSearchStore } from "../stores/search";
 
 import { Chart as ChartJS, Title, Tooltip, Legend, ArcElement, BarElement, LineElement, CategoryScale, LinearScale, PointElement } from "chart.js"
 import { Pie, Bar, Line } from "vue-chartjs"
@@ -62,6 +63,7 @@ ChartJS.register(Title, Tooltip, Legend, ArcElement, BarElement, LineElement, Ca
 const occupancyData = ref(null)
 const revenueData = ref(null)
 const reservationData = ref(null)
+const searchStore = useSearchStore();
 
 
 const { token } = useAuth();
@@ -70,9 +72,10 @@ const summary = ref({});
 
 onMounted(async () => {
   // Lot-wise occupancy
-  const occRes = await apiFetch("/api/admin/reports/occupancy", {
-    headers: { Authorization: `Bearer ${token.value}` }
-  }).then(r => r.json())
+
+
+  searchStore.setOpCode("occupancy");
+  const occRes = await apiClient.post('/admin/reports')
   occupancyData.value = {
     labels: occRes.map(l => l.lot),
     datasets: [
@@ -103,10 +106,10 @@ onMounted(async () => {
   //     fill: false
   //   }))
   // }
-  const revRes = await apiFetch("/api/admin/reports/revenue", {
-    headers: { Authorization: `Bearer ${token.value}` }
-  }).then(r => r.json())
 
+  searchStore.setOpCode("revenue");
+  const revRes = await apiClient.post('/admin/reports')
+console.log('revRes: ', revRes);
   // Month names (short form, you can use full names too)
   const monthNames = [
     "Jan", "Feb", "Mar", "Apr", "May", "Jun",
@@ -135,9 +138,9 @@ onMounted(async () => {
   }
 
   // Reservation activity
-  const resRes = await apiFetch("/api/admin/reports/reservations", {
-    headers: { Authorization: `Bearer ${token.value}` }
-  }).then(r => r.json())
+  searchStore.setOpCode("reservation");
+  const resRes = await apiClient.post('/admin/reports')
+  console.log("Reservation Data:", resRes);
   reservationData.value = {
     labels: resRes.map(r => r.lot),
     datasets: [
@@ -148,9 +151,8 @@ onMounted(async () => {
       }
     ]
   }
-  const res = await apiFetch("/api/admin/summary", {
-    headers: { Authorization: `Bearer ${token.value}` }
-  });
+  searchStore.setOpCode("summary");
+  const res = await apiClient.post('/admin/reports')
   if (res.ok) {
     summary.value = await res.json();
   }

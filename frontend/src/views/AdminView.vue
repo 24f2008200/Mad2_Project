@@ -28,7 +28,7 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted, computed } from "vue";
-import { apiFetch } from "../api";
+import apiClient from '@/apiClient';
 import { useSearchStore } from "../stores/search";
 import DataTable from "@/components/DataTable.vue";
 import RowEditor from "@/components/RowEditor.vue";
@@ -46,7 +46,7 @@ const userCols = [
 ];
 
 const reservationCols = [
- 
+
   { key: "id", label: "ID", filterType: "select", type: "noedit" },
   { key: "label", label: "Spot", type: "text" },
   { key: "user_name", label: "User", type: "text" },
@@ -56,7 +56,7 @@ const reservationCols = [
   { key: "driver_name", label: "Driver", type: "text" },
   { key: "driver_contact", label: "Contact", type: "number" },
   { key: "total_earnings", label: "Revenue", type: "number" },
-   { key: "edit", label: "Edit", type: "action" },
+  { key: "edit", label: "Edit", type: "action" },
 ];
 const lotCols = [
   { key: "id", label: "ID", filterType: "select", type: "noedit" },
@@ -179,46 +179,25 @@ async function performSearch() {
   }
 
   try {
-    // Decide endpoint based on global searchType
-    const endpoint =
-      searchType === "user"
-        ? "/api/admin/users"
-        : searchType === "reservation"
-          ? `/api/admin/search?type=bookings&search_by=${searchBy}&value=${searchValue}`
-          : searchType === "lot"
-            ? `/api/admin/search?type=lots&search_by=${searchBy}s&value=${searchValue}`
-            : searchType === "reminder"
-              ? `/api/admin/reminders/logs`
-              : null;
-
-    const url = `${endpoint}?search_by=${searchType}&value=${encodeURIComponent(
-      searchValue
-    )}`; console.log("Search URL:", url);
-    const response = await apiFetch(url, {
-      method: "GET",
-      // doDateConversion : true, 
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${localStorage.getItem("access_token")}`,
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error("Network response was not ok");
+    searchStore.setOpCode(searchType);
+    if (searchType == "lot") {
+      results.value = await apiClient.get('/admin/lots')
+    }
+    else {
+      results.value = await apiClient.post('/admin/reports')
     }
 
-    const data = await response.json();
-    results.value = data;
     searched.value = true;
     console.log(searchType);
 
-      console.log("Before date formatting:", results.value);
+    console.log("Before date formatting:", results.value);
 
     if (results.value.length > 0) {
       tableHeaders.value = Object.keys(results.value[0]);
-      // console.log("tableHeaders:", tableHeaders.value);
+      console.log("tableHeaders:", tableHeaders.value);
     } else {
       tableHeaders.value = [];
+      console.log("No results found.");
     }
   } catch (error) {
     console.error("Search error:", error);

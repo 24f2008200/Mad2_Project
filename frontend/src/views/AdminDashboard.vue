@@ -69,7 +69,7 @@
 <script setup>
 import { ref, onMounted, nextTick } from 'vue'
 import { Modal } from 'bootstrap'
-import { apiFetch } from '@/api'
+import apiClient from '@/apiClient';
 import ParkingLotCard from '../components/ParkingLotCard.vue'
 import SlotDetailModal from '../components/SlotDetailModal.vue'
 
@@ -90,12 +90,10 @@ const selectedReservation = ref(null)
 // Core CRUD Methods
 // --------------------------------------------------
 async function fetchLots() {
-  const token = localStorage.getItem('access_token')
+  // console.log('Fetching lots from API...')
+
   try {
-    const res = await apiFetch('/api/admin/lots', {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-    lots.value = await res.json()
+    lots.value = await apiClient.get("/admin/lots", )
   } catch (err) {
     console.error('Error fetching lots:', err)
   }
@@ -133,28 +131,33 @@ function handleEditLot(lot) {
 
 async function updateLot() {
   if (isEdit.value) {
-    await handleUpdates(`/api/admin/lots/${editId.value}`, 'PUT', formLot.value)
+    await apiClient.put(`/admin/lots/${editId.value}`, formLot.value)
+    // await handleUpdates(`/api/admin/lots/${editId.value}`, 'PUT', formLot.value)
   } else {
-    await handleUpdates('/api/admin/lots', 'POST', formLot.value)
+    await apiClient.post('/admin/lots', formLot.value)
   }
   await closeModalAndRefresh()
 }
 
 async function handleDeleteLot(id) {
   if (!confirm('Are you sure you want to delete this lot?')) return
-  await handleUpdates(`/api/admin/lots/${id}`, 'DELETE', null)
+  console.log('Deleting lot with ID:', id)
+  await apiClient.del(`/admin/lots/${id}`);
+  await fetchLots();
 }
 
 async function handleDeleteSlot(slot) {
   if (!confirm('Are you sure you want to delete this slot?')) return
   isModalOpen.value = false
-  await handleUpdates(`/api/admin/slots/${slot.id}`, 'DELETE', null)
+  await apiClient.del(`/admin/slots/${slot.id}`);
+  await fetchLots();
 }
 
 async function handleUpdates(url, method, data) {
   const token = localStorage.getItem('access_token')
   try {
-    const res = await apiFetch(url, {
+
+    const res = await apiClient(url, {
       method,
       headers: {
         'Content-Type': 'application/json',
