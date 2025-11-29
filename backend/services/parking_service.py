@@ -9,6 +9,7 @@ def get_all_lots():
         {
             "id": lot.id,
             "name": lot.name,
+            "prefix": lot.prefix,
             "address": lot.address,
             "pin_code": lot.pin_code,
             "price": lot.price,

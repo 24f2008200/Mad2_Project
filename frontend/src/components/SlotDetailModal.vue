@@ -28,7 +28,7 @@
           <p><strong>Vehicle Number:</strong> {{ slot.vehicle_number }}</p>
           <p><strong>Start Time:</strong> {{ f_date(slot.occupied_since) }}</p>
           <p><strong>End Time:</strong> {{ f_date(slot.end_time) }}</p>
-          <p v-if="slot.total_earnings"><strong>Total Earnings:</strong> ${{ slot.total_earnings }}</p>
+          <p v-if="slot.total_earnings"><strong>Total Earnings:</strong> Rs.{{ slot.total_earnings }}</p>
         </div>
 
         <div class="modal-footer">

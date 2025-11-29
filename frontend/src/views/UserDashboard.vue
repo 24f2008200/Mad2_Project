@@ -2,32 +2,6 @@
   <div class="container-fluid mt-4">
     <!-- <h2 class="mb-4">{{ currentUser["name"] }} Dashboard</h2> -->
 
-    <!-- Recent Parking History -->
-    <div class="card mb-4">
-      <div class="card-header bg-primary text-white">
-        Recent Parking History
-      </div>
-      <div class="card-body">
-        <DataTable :columns="reservationColumns" :rows="reservations">
-          <!-- Custom cell for From -->
-          <template #start_time="{ row }">
-            {{ f_date(row.start_time) }}
-          </template>
-          <!-- Custom cell for To -->
-          <template #end_time="{ row }">
-            {{ f_date(row.end_time) }}
-          </template>
-          <!-- Custom cell for Action -->
-          <template #status="{ row }">
-            <button v-if="row.status === 'active'" class="btn btn-sm btn-danger" @click="releaseSpot(row.id)">
-              Release
-            </button>
-            <span v-else class="badge bg-success">Parked Out</span>
-          </template>
-        </DataTable>
-      </div>
-    </div>
-
     <!-- Parking Lots by Pin Code -->
     <div class="card">
       <div class="card-header bg-success text-white">
@@ -93,11 +67,16 @@
                 <td>{{ lot.address }}</td>
                 <td>{{ lot.available_spots }}</td>
                 <td>
-                  <button class="btn btn-sm btn-primary" :disabled="lot.available_spots === 0"
+                  <button class="btn btn-sm btn-primary me-2" :disabled="lot.available_spots === 0"
                     @click="openBookingModal(lot)">
                     Book
                   </button>
+
+                  <button class="btn btn-sm btn-secondary" @click="closeDropdown()">
+                    Close
+                  </button>
                 </td>
+
               </tr>
             </tbody>
           </table>
@@ -106,27 +85,59 @@
         <p v-else class="text-muted">No lots available for this pin code.</p>
       </div>
     </div>
+    <!-- Recent Parking History -->
+    <div class="card mb-4">
+      <div class="card-header bg-primary text-white">
+        Recent Parking History
+      </div>
+      <div class="card-body">
+        <DataTable :columns="reservationColumns" :rows="reservations">
+          <!-- Custom cell for From -->
+          <template #start_time="{ row }">
+            {{ f_date(row.start_time) }}
+          </template>
+          <!-- Custom cell for To -->
+          <template #end_time="{ row }">
+            {{ f_date(row.end_time) }}
+          </template>
+          <!-- Custom cell for Action -->
+          <template #status="{ row }">
+            <button v-if="row.status === 'active'" class="btn btn-sm btn-danger" @click="releaseSpot(row.id)">
+              Release
+            </button>
+            <span v-else class="badge bg-success">Parked Out</span>
+          </template>
+        </DataTable>
+      </div>
+    </div>
+
+
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from "vue";
-import { useAuth } from "../stores/auth";
+import { ref, onMounted, watch } from "vue";
+import { useAuthStore} from "../stores/auth";
 import * as bootstrap from "bootstrap";
 import { apiFetch } from "@/api";
+import apiClient from '@/apiClient';
 import DataTable from "@/components/DataTable.vue";
+import { useSearchStore } from "../stores/search";
+import { storeToRefs } from "pinia";
+const auth = useAuthStore();
+const { isLoggedIn, isAdmin, userName, userId: uid, token } = storeToRefs(auth);
+const searchStore = useSearchStore();
 
-const { token } = useAuth();
 const reservationColumns = [
-  { key: "lot_prefix", label: "ID" ,filterType :"select" ,type: "noedit" },
-  { key: "spot_id", label: "Location" , type: "noedit" },
-  { key: "vehicle_number", label: "Vehicle No" , type: "text" },
-  { key: "start_time", label: "From" , type: "text" },
-  { key: "end_time", label: "To" , type: "text" },
-  { key: "driver_name", label: "Driver Name" , type: "text" },
+  { key: "lot_prefix", label: "ID", filterType: "select", type: "noedit" },
+  { key: "spot_id", label: "Location", type: "noedit" },
+  { key: "vehicle_number", label: "Vehicle No", type: "text" },
+  { key: "start_time", label: "From", type: "text" },
+  { key: "end_time", label: "To", type: "text" },
+  { key: "driver_name", label: "Driver Name", type: "text" },
   { key: "driver_contact", label: "Driver Contact" },
   { key: "cost", label: "Fee", type: "number" },
-   { key: "status", label: "Action"  }
+  { key: "status", label: "Action" }
 ];
 
 
@@ -136,7 +147,7 @@ const pinCodes = ref([]);
 const selectedPin = ref("");
 const lots = ref([]);
 const currentUser = JSON.parse(localStorage.getItem("current_user", '{"name": "User"}'));
-const f_date = (raw) => raw ;
+const f_date = (raw) => raw;
 // state for modal + form
 const selectedLot = ref(null);
 const bookingModal = ref(null);
@@ -154,7 +165,9 @@ function openBookingModal(lot) {
   bookingModal.value = new bootstrap.Modal(modalEl);
   bookingModal.value.show();
 }
-
+function closeDropdown() {
+  lots.value = [];
+}
 // Confirm booking
 async function confirmBooking() {
   if (!selectedLot.value) return;
@@ -187,27 +200,25 @@ async function confirmBooking() {
     // console.log("Failed to book slot:", errorData);
     alert("Failed to book slot: " + errorData.error);
   }
+  closeDropdown();
 }
 
 // Fetch recent reservations
 async function fetchReservations() {
-  const res = await apiFetch("/api/user/reservations", {
-    // doDateConversion : true,
-    headers: { Authorization: `Bearer ${token.value}` },
-  });
-  // if (res.ok) {
-    reservations.value = await res.json();
-  // }
+  searchStore.setOpCode(searchStore.searchType);
+  reservations.value = await apiClient.post('/user/reservations', { user_id: currentUser.id, });
+
 }
 
-// Release a spot
+// Release a spot headers: { "Content-Type": "application/json" },
 async function releaseSpot(reservationId) {
   const res = await apiFetch(`/api/user/spots`, {
     method: "POST",
-    headers: { Authorization: `Bearer ${token.value}` },
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token.value}` },
     body: JSON.stringify({
       "action": "release",
-      "reservation_id": reservationId }),
+      "reservation_id": reservationId
+    }),
   });
   if (res.ok) {
     reservations.value = reservations.value.map((r) =>
@@ -241,6 +252,7 @@ async function fetchLots() {
 
 
 onMounted(() => {
+  searchStore.setNavbarAction(fetchReservations);
   fetchReservations();
   fetchPinCodes();
 });

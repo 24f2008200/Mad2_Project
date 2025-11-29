@@ -1,0 +1,79 @@
+Table user {
+  id int [pk, increment]
+  created_at datetime
+  updated_at datetime
+  active boolean
+
+  email varchar(255) [unique, not null]
+  name varchar(120)
+  mobile varchar(20)
+  password varchar(255) [not null]
+  is_admin boolean
+  is_blocked boolean
+  role varchar(50)
+  address varchar(512)
+  receive_reminders boolean
+  reminder_time varchar(10)
+  google_chat_webhook varchar(512)
+  last_login datetime
+  last_reminder_sent_at datetime
+}
+
+Table parkinglot {
+  id int [pk, increment]
+  created_at datetime
+  updated_at datetime
+  active boolean
+
+  name varchar(255) [not null]
+  prefix varchar(3)
+  price float
+  address varchar(512)
+  pin_code varchar(20)
+  max_slots int
+}
+
+Table parkingspot {
+  id int [pk, increment]
+  created_at datetime
+  updated_at datetime
+  active boolean
+
+  lot_id int [not null]
+  status varchar(1)
+  label varchar(50)
+  premium varchar(1)
+}
+
+Table reservation {
+  id int [pk, increment]
+  created_at datetime
+  updated_at datetime
+  active boolean
+
+  user_id int [not null]
+  spot_id int [not null]
+  vehicle_number varchar(20) [not null]
+  driver_contact varchar(20)
+  driver_name varchar(120)
+  start_time datetime
+  end_time datetime
+  parking_fee float
+}
+
+Table reminderjob {
+  id int [pk, increment]
+  created_at datetime
+  updated_at datetime
+  active boolean
+
+  user_id int [not null]
+  scheduled_at datetime [not null]
+  status varchar(20)
+  sent_at datetime
+}
+
+Ref: parkingspot.lot_id > parkinglot.id
+Ref: reservation.user_id > user.id
+Ref: reservation.spot_id > parkingspot.id
+Ref: reminderjob.user_id > user.id

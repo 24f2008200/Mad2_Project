@@ -4,7 +4,7 @@ import { useRouter } from "vue-router";
 const router = useRouter();
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "http://localhost:5000") + "/api";
-
+console.log("API_BASE_URL:", API_BASE_URL);
 
 
 // 2. Build URL with common + extra params (GET & DELETE)
@@ -21,7 +21,7 @@ function buildURLWithParams(endpoint, extraParams = {}) {
     return qs ? `${API_BASE_URL}${endpoint}?${qs}` : `${API_BASE_URL}${endpoint}`;
 }
 
-// 3. Add common params to body (POST & PUT)
+// 3. Add common params to body (POST & PUT) 
 function mergeBodyWithCommon(data = {}) {
     const common = getCommonParams();
     const full = { ...data, ...common };
@@ -52,20 +52,37 @@ async function request(url, options = {}) {
         fetchOptions.body = JSON.stringify(options.body);
     }
     try {
-        console.log("apiClient URL", url, fetchOptions);
-        const res = await fetch(url, fetchOptions);
-        if (res.status >= 400) {
-            console.log("API Response Error:", res.status);
-            router.push("/login"); // redirect to login on error
-            throw new Error(`API error: ${res.status}`);
-        }
-        const text = await res.text();
-        return text ? JSON.parse(text) : {};
+    console.log("apiClient URL", url, fetchOptions);
+
+    const res = await fetch(url, fetchOptions);
+
+    if (!res.ok) {
+        console.log("API Response Error:", res.status);
+        router.push("/login");
+        throw new Error(`API error: ${res.status}`);
     }
-    catch (err) {
-        console.error("API Error:", err);
-        throw err;
+
+    // Detect content type
+    const contentType = res.headers.get("Content-Type") || "";
+console.log("apiClient Content-Type:", contentType);
+    // If PDF or any binary
+    if (contentType.includes("application/pdf")) {
+        return await res.blob();
     }
+
+    // If JSON
+    if (contentType.includes("application/json")) {
+        return await res.json();
+    }
+
+    // Otherwise return raw text
+    return await res.text();
+
+} catch (err) {
+    console.error("apiClient ERROR:", err);
+    throw err;
+}
+
 }
 export default {
     // GET: params → merged with common → URL query

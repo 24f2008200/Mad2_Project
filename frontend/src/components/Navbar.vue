@@ -11,6 +11,9 @@
           <li class="nav-item">
             <RouterLink class="nav-link" to="/login">Login</RouterLink>
           </li>
+          <!-- <li>
+            <RegisterCopyNew   @closed="show = false">New Register </RegisterCopyNew>
+          </li> -->
           <li class="nav-item">
             <RouterLink class="nav-link" to="/register">Register</RouterLink>
           </li>
@@ -55,15 +58,24 @@
               Reminder Logs
             </RouterLink>
           </li>
+          <li class="nav-item">
+            <RouterLink class="nav-link" to="/tasks">Tasks</RouterLink>
+          </li>
         </ul>
       </template>
 
       <!-- User Navbar -->
       <template v-else>
         <ul class="navbar-nav me-auto">
-          <li class="nav-item">
-            <RouterLink class="nav-link" to="/user">Home</RouterLink>
+          <li class="nav-item d-flex align-items-center ms-3">
+            <RouterLink class="nav-link text-info" :class="{ active: searchStore.searchType === 'reservation' }"
+              @click.prevent="setSearchType('reservation')" to="/user">
+              Home
+            </RouterLink>
           </li>
+          <!-- <li class="nav-item"> 
+            <RouterLink class="nav-link" to="/user">Home</RouterLink>
+          </li> -->
           <!-- <li class="nav-item d-flex align-items-center ms-3">
             <RouterLink class="nav-link text-info" :class="{ active: searchStore.searchType === 'reservation' }"
               @click.prevent="setSearchType('reservation')" to="/users">
@@ -74,11 +86,15 @@
             <RouterLink class="nav-link" to="/user/summary">Summary</RouterLink>
           </li>
           <li>
-            <Button @click="startExport">Export CSV</Button>
-            <div v-if="exportStatus">
-              Status: {{ exportStatus }}
-            </div>
-            <a v-if="downloadUrl" :href="downloadUrl">Download CSV</a>
+            <Button class="btn btn-profile" @click="startExport">Export CSV</Button>
+            <!-- <template v-if="exportStatus">
+              <span>Status: {{ exportStatus }}</span>
+            </template> -->
+            <a v-if="downloadUrl" :href="downloadUrl" download="reservations.csv" class="btn btn-link mt-2"
+              @click="clearDownloadUrl">
+              Download CSV
+            </a>
+
 
           </li>
 
@@ -96,15 +112,15 @@
           </button>
         </li>
       </ul> -->
-        <div class="nav">
+      <div class="nav">
 
-<div style="display:flex; gap:10px; align-items:center">
-      <input type="date" v-model="startDate" class="form-control search-input"/>
-      <input type="date" v-model="endDate" class="form-control search-input"/>
+        <div style="display:flex; gap:10px; align-items:center">
+          <input type="date" v-model="startDate" class="form-control search-input" />
+          <input type="date" v-model="endDate" class="form-control search-input" />
 
-      <!-- <button class="btn btn-search"  @click="apply">Apply</button> -->
-    </div>
-  </div>
+          <!-- <button class="btn btn-search"  @click="apply">Apply</button> -->
+        </div>
+      </div>
       <form class="d-flex align-items-center gap-3" role="search" @submit.prevent="onSearch">
         <!-- Admin-only search bar -->
         <template v-if="isAdmin">
@@ -137,22 +153,31 @@
 
 <script setup>
 import { computed, ref, watch } from "vue";
-import { useRouter } from "vue-router";
-import { useAuth } from "../stores/auth";
+// import { useRouter } from "vue-router";
+import { router } from "@/router";
+import { useAuthStore} from "../stores/auth";
 import { useSearchStore } from "../stores/search";
 import apiClient from '@/apiClient';
 import UserProfileModal from '../components/UserProfileModal.vue';
-const { isLoggedIn, isAdmin, logout, userName } = useAuth();
+import { storeToRefs } from "pinia";
+const auth = useAuthStore();
+const { isLoggedIn, isAdmin, userName, userId: uid } = storeToRefs(auth);
 
 const userId = ref();
 const show = ref(false);
 let currentUserIsAdmin = ref(false);
+const exportStatus = ref("");
+const downloadUrl = ref("");
 
 const searchStore = useSearchStore();
-// const searchType = searchStore.searchType; 
-const router = useRouter();
-const today = new Date()
-const endDate = ref(today.toISOString().substring(0, 10))
+// const searchType = searchStore.searchType;  
+// const router = useRouter();
+
+const today = new Date();
+const tomorrow = new Date(today);
+tomorrow.setDate(tomorrow.getDate() + 1);
+
+const endDate = ref(tomorrow.toISOString().substring(0, 10));
 
 const start = new Date()
 start.setMonth(start.getMonth() - 1)
@@ -167,30 +192,32 @@ const welcomeText = computed(() => {
   if (!isLoggedIn.value) {
     return "Welcome, Guest"
   }
-  return isAdmin.value ? "Welcome to Admin" : userName.value + "'s Dashboard";
+  return userName.value + "'s Dashboard";
 })
 
 watch([startDate, endDate], () => {
-  apply();    
+  apply();
 });
 
 watch(
   () => searchStore.searchType,
-  (newVal) => { console.log("Search type changed to", newVal);
+  (newVal) => {
+    console.log("Search type changed to", newVal);
     router.push("/views"); // navigate once type changes
     searchStore.triggerNavbarAction(); // Notify views to update
   }
 );
 function setSearchType(type) {
-   searchStore.setSearchType(type); 
+  searchStore.setSearchType(type);
   //searchStore.searchType = type;
   console.log("Set search type to", type);
   // router.push("/views");
- // searchStore.triggerNavbarAction(); // Notify views to update
+  // searchStore.triggerNavbarAction(); // Notify views to update
 }
 
 function openProfile() {
-  const { isAdmin, userName, userId: uid } = useAuth()
+  //const { isAdmin, userName, userId: uid } = useAuthStore()
+  console.log("Opening profile for userId:", uid.value, "isAdmin:", isAdmin.value);
   userId.value = parseInt(uid.value)
   currentUserIsAdmin.value = isAdmin.value
   show.value = true
@@ -204,24 +231,104 @@ const onSearch = () => {
 // function onSearchByClick() {
 //   searchStore.triggerNavbarAction();
 // }
+// async function doLogout() {
+//   router.push({ path: "/login", force: true });
+//   console.log("Logging out...");
+//   apiClient.post("/auth/logout", {}, { withCredentials: true }).catch((e) => {
+//     console.warn("Logout request failed:", e);
+//   });
+//   localStorage.removeItem("current_user");
+//   localStorage.removeItem("access_token");
+//   localStorage.removeItem("is_admin");
+//   logout();
+//   await router.push("/login");  // ensures redirect happens
+//   }
 async function doLogout() {
-  apiClient.post("/auth/logout", {}, { withCredentials: true }).catch((e) => {
-    console.warn("Logout request failed:", e);
-  });
-  // try {
+  apiClient.post("/auth/logout").catch(() => { });
 
-  //   await apiFetch("/api/auth/logout", {
-  //     method: "POST",
-  //     credentials: "include",
-  //   });
-  // } catch (e) {
-  //   console.warn("Logout request failed:", e);
-  // }
-  localStorage.removeItem("access_token");
-  localStorage.removeItem("is_admin");
-  logout();
-  router.push("/");
+  const auth = useAuthStore();
+  auth.logout();
+
+  await router.replace("/login");
 }
+async function startExport() {
+  exportStatus.value = "Fetching data...";
+  downloadUrl.value = "";
+
+  try {
+    const json = await apiClient.post("/user/reservations");
+
+    // if (!res.ok) {
+    //   exportStatus.value = "Error fetching data";
+    //   return;
+    // }
+
+    // const json = await res.json();
+
+    if (!Array.isArray(json) || json.length === 0) {
+      exportStatus.value = "No data to export";
+      return;
+    }
+
+    exportStatus.value = "Converting to CSV...";
+
+    // Build CSV
+    const csv = convertToCSV(json);
+
+    // Blob URL
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    downloadUrl.value = URL.createObjectURL(blob);
+
+    exportStatus.value = "Ready to download";
+
+  } catch (err) {
+    console.error("CSV Export Error:", err);
+    exportStatus.value = "Failed to export";
+  }
+}
+function clearDownloadUrl() {
+  // let the browser start the download first
+  setTimeout(() => {
+    URL.revokeObjectURL(downloadUrl.value); // optional cleanup
+    downloadUrl.value = "";
+    exportStatus.value = "";
+  }, 1000); // small delay so download starts
+}
+
+
+// function convertToCSV(data) {
+//   const headers = Object.keys(data[0]);
+//   const csvRows = [];
+
+//   // Add headers
+//   csvRows.push(headers.join(","));
+
+//   // Add rows
+//   for (const row of data) {
+//     const values = headers.map(header => {
+//       const escaped = ("" + row[header]).replace(/"/g, '\\"');
+//       return `"${escaped}"`;
+//     });
+//     csvRows.push(values.join(","));
+//   }
+
+//   return csvRows.join("\n");
+// }
+
+function convertToCSV(data) {
+  const headers = Object.keys(data[0]);
+
+  const escape = (val) =>
+    '"' + String(val ?? "").replace(/"/g, '""') + '"';
+
+  const rows = [
+    headers.join(","),                                // header row
+    ...data.map(row => headers.map(h => escape(row[h])).join(","))  // data rows
+  ];
+
+  return rows.join("\n");
+}
+
 </script>
 
 <style scoped>

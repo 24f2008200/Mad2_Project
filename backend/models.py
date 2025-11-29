@@ -4,9 +4,11 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from backend.app import db
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy import select, func, inspect, text, event
+from sqlalchemy import select, func, inspect, text, event, DateTime
 from sqlalchemy.exc import SQLAlchemyError
-
+from sqlalchemy.types import TypeDecorator
+from datetime import UTC, timedelta
+IST = timezone(timedelta(hours=5, minutes=30))
 
 class MyModel(db.Model):
     __abstract__ = True
@@ -50,8 +52,57 @@ class MyModel(db.Model):
                 result[name] = value
 
         return result
+def utcnow():
+    """Return timezone-aware UTC now (use for defaults)."""
+    return datetime.now(UTC)
 
 
+def to_ist(dt: datetime) -> datetime | None:
+    """Convert an aware datetime (UTC or other tz) to IST. Returns None for None."""
+    if dt is None:
+        return None
+    if dt.tzinfo is None:
+        # assume naive are UTC (should be rare because we coerce earlier)
+        dt = dt.replace(tzinfo=UTC)
+    return dt.astimezone(IST)
+
+
+def ensure_aware_utc(dt: datetime | None) -> datetime | None:
+    """Ensure a datetime is timezone-aware and in UTC."""
+    if dt is None:
+        return None
+    if dt.tzinfo is None:
+        # assume naive datetimes are UTC — adjust if you prefer otherwise
+        dt = dt.replace(tzinfo=UTC)
+    return dt.astimezone(UTC)
+
+class UTCDateTime(TypeDecorator):
+    """
+    SQLAlchemy TypeDecorator to store/retrieve timezone-aware datetimes as UTC.
+
+    - process_bind_param: when writing to DB, ensure value is UTC-aware (naive -> treated as UTC)
+    - process_result_value: when reading from DB, return timezone-aware UTC datetime
+    """
+    impl = DateTime
+    cache_ok = True
+
+    def process_bind_param(self, value, dialect):
+        if value is None:
+            return None
+        # make sure value is timezone-aware and in UTC
+        v = ensure_aware_utc(value)
+        # SQLAlchemy expects naive datetimes for some backends; but when using timezone=True
+        # many DBAPIs accept aware datetimes. We keep aware datetimes to avoid loss of info.
+        return v
+
+    def process_result_value(self, value, dialect):
+        if value is None:
+            return None
+        # DB might return naive; treat it as UTC if naive
+        if value.tzinfo is None:
+            value = value.replace(tzinfo=UTC)
+        return value.astimezone(UTC)
+ 
 class User(MyModel):
     email = db.Column(db.String(255), unique=True, nullable=False)
     name = db.Column(db.String(120))
@@ -76,7 +127,12 @@ class User(MyModel):
 
     def check_password(self, password: str) -> bool:
         return check_password_hash(self.password, password)
-
+    @hybrid_property
+    def total_reservations(self):
+        return len(self.reservations) if self.reservations else 0
+    @hybrid_property
+    def active_reservations(self):
+        return len([r for r in self.reservations if r.end_time is None]) if self.reservations else 0
     @hybrid_property
     def billing(self):
         return sum(
@@ -246,7 +302,7 @@ class ParkingSpot(MyModel):
                 "label": self.label,
                 "status": self.status,
                 "vehicle_number": r.vehicle_number if r else None,
-                "start_time": dateFormat(r.start_time) if r else None,
+                "occupied_since": dateFormat(r.start_time) if r else None,
                 "user_name": u.name if u else None,
                 "driver_contact": r.driver_contact if r else None,
                 "driver_name": r.driver_name if r else None,
@@ -331,14 +387,53 @@ class ReminderJob(MyModel):
 def model_to_dict(obj):
     result = {}
     for col in obj.__table__.columns:
+        col_name = col.name
+        value = getattr(obj, col_name)
+
+        if col_name.lower() == "password":   #  hide password
+            result[col_name] = ""
+            continue
+
+        if isinstance(value, datetime):
+            result[col_name] = value.strftime("%Y-%m-%d %H:%M:%S")
+        else:
+            result[col_name] = value
+
+    return result
+
+
+def model_to_dict_hybrid(obj):
+    result = {}
+
+    # 1. Serialize regular columns
+    for col in obj.__table__.columns:
         value = getattr(obj, col.name)
+        
+        if col.name.lower() == "password":   #  hide password
+            result[col.name] = ""
+            continue
+
         if isinstance(value, datetime):
             result[col.name] = value.strftime("%Y-%m-%d %H:%M:%S")
         else:
             result[col.name] = value
+
+    # 2. Serialize hybrid properties & extra fields
+    extras = getattr(obj, "__serialize_extras__", [])
+    for name in extras:
+        try:
+            value = getattr(obj, name)
+
+            # handle datetime from hybrid property
+            if isinstance(value, datetime):
+                result[name] = value.strftime("%Y-%m-%d %H:%M:%S")
+            else:
+                result[name] = value
+
+        except Exception as e:
+            result[name] = None  # optional fallback
+
     return result
-
-
 def dateFormat(value):
     return value.strftime("%Y-%m-%d %H:%M") if value else None
 
@@ -372,3 +467,130 @@ def search_all(search_term):
                 except SQLAlchemyError:
                     continue
     return results
+
+# =========== Control panel models =============
+
+
+from sqlalchemy import Column, Integer, String, Boolean, JSON, DateTime, Text, ForeignKey
+from sqlalchemy.orm import relationship
+
+# Reuse UTCDateTime, utcnow, MyModel from your models.py
+# If names differ, adapt imports accordingly.
+
+class NotificationChannel:
+    EMAIL = "email"
+    GCHAT = "gchat"
+    SMS = "sms"
+
+
+class Rule(MyModel):
+    """
+    DB-driven rule to decide whom to notify and when.
+    schedule: JSON e.g. {"type":"daily", "time":"18:00"} or {"type":"cron","expr":"0 18 * * *"} or {"type":"monthly","day":1,"time":"02:00"}
+    conditions: JSON array of predicate objects (see predicate registry in tasks.py)
+    actions: JSON array of action objects, e.g. [{"action":"send_reminder","channels":["gchat","email"]}]
+    target: optional JSON for narrowing scope (e.g. {"parkinglot_ids":[1,2]})
+    """
+    __tablename__ = "rule"
+
+    name = Column(String(255), nullable=False)
+    description = Column(Text)
+    enabled = Column(Boolean, default=True, nullable=False)
+    schedule = Column(JSON, nullable=False)
+    conditions = Column(JSON, nullable=True)
+    actions = Column(JSON, nullable=False)
+    target = Column(JSON, nullable=True)
+
+    created_by = Column(Integer, ForeignKey("user.id"))
+    created_by_user = relationship("User", foreign_keys=[created_by])
+
+
+class ScheduledJobRun(MyModel):
+    """
+    Tracks runs of rules (audit + status).
+    """
+    __tablename__ = "scheduled_job_run"
+
+    rule_id = Column(Integer, ForeignKey("rule.id"))
+    rule = relationship("Rule")
+    run_time = Column(UTCDateTime(timezone=True), default=utcnow)
+    status = Column(String(30), default="pending")  # pending, running, success, failed
+    details = Column(JSON)
+
+
+class ExportJob(MyModel):
+    """
+    User-triggered export job (CSV). Created when user requests export; worker fills result_url.
+    """
+    __tablename__ = "export_job"
+
+    user_id = Column(Integer, ForeignKey("user.id"), nullable=False)
+    user = relationship("User")
+    params = Column(JSON)  # e.g. {"from":"2024-01-01","to":"2024-11-01", "fields":[...]}
+    status = Column(String(30), default="pending")  # pending, running, done, failed
+    result_url = Column(String(1024))
+    error = Column(Text)
+
+# --- End: Rule and Job models ---
+
+
+# Daily reminder at user-preferred time example:
+# {
+#   "name":"Daily evening reminder",
+#   "schedule": {"type":"daily", "time_field":"reminder_time", "fallback_time":"18:00"},
+#   "conditions": [
+#     {"type":"predicate","name":"not_visited_in_days","days":7},
+#     {"type":"predicate","name":"has_parkinglot_created_by_admin","within_days":30}
+#   ],
+#   "actions": [
+#     {"action":"send_reminder","channels":["gchat","email"]}
+#   ]
+# }
+# Monthly activity report
+# {
+#   "name":"Monthly activity report",
+#   "schedule": {"type":"monthly","day":1, "time": "02:00"},
+#   "conditions": [
+#     {"type":"predicate","name":"has_any_reservation_in_month","month_offset":1}
+#   ],
+#   "actions": [
+#     {"action":"generate_and_email_report","channels":["email"]}
+#   ]
+# }
+
+
+
+
+
+class TaskRecord(db.Model):
+    __tablename__ = "task_records"
+    id = db.Column(db.String(64), primary_key=True)   # celery task id
+    name = db.Column(db.String(255), nullable=False)
+    status = db.Column(db.String(32), nullable=False, index=True)  # PENDING, RUNNING, SUCCESS, FAILED, REVOKED
+    worker = db.Column(db.String(128), nullable=True, index=True)
+    start_time = db.Column(db.DateTime(timezone=True), nullable=True)
+    end_time   = db.Column(db.DateTime(timezone=True), nullable=True)
+
+    duration = db.Column(db.Float, nullable=True)  # seconds
+    progress = db.Column(db.Integer, nullable=True, default=0)  # 0-100
+    created_at = db.Column(
+        db.DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+    )
+    updated_at = db.Column(
+        db.DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+    )
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "status": self.status,
+            "worker": self.worker,
+            "start_time": self.start_time.isoformat() if self.start_time else None,
+            "end_time": self.end_time.isoformat() if self.end_time else None,
+            "duration": round(self.duration, 3) if self.duration is not None else None,
+            "progress": int(self.progress) if self.progress is not None else 0,
+        }

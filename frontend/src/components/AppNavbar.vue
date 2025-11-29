@@ -23,16 +23,20 @@
 
 <script setup>
 import { computed, ref } from "vue";
-import { useRouter } from "vue-router";
-import { useAuth } from "@/stores/auth";
+// import { useRouter } from "vue-router";
+import { router } from "@/router";
+import { useAuthStore} from "@/stores/auth";
 import { useSearchStore } from "@/stores/search";
 import SearchBox from "./SearchBox.vue";
 import AdminNavLinks from "./AdminNavLinks.vue";
 import UserProfileModal from "./UserProfileModal.vue";
+import { storeToRefs } from "pinia";
+const auth = useAuthStore();
+const { isLoggedIn, isAdmin, userName, userId: uid, token } = storeToRefs(auth);
 
-const { isLoggedIn, isAdmin, logout, userName } = useAuth();
+// const { isLoggedIn, isAdmin, logout, userName } = useAuthStore();
 const searchStore = useSearchStore();
-const router = useRouter();
+// const router = useRouter();
 
 const showProfile = ref(false);
 const profileUserId = ref(null);

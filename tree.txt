@@ -1,0 +1,124 @@
+
+
+
+
+
+
+
+
+
+backend
+├── __init__.py
+├── __pycache__
+│   ├── __init__.cpython-312.pyc
+│   ├── app.cpython-312.pyc
+│   ├── app.cpython-313.pyc
+│   ├── celery.cpython-312.pyc
+│   ├── celery_app.cpython-312.pyc
+│   ├── celery_utils.cpython-312.pyc
+│   ├── config.cpython-312.pyc
+│   ├── desktop.ini
+│   ├── diagnostics.cpython-312.pyc
+│   ├── diagnostics.cpython-313.pyc
+│   ├── extensions.cpython-312.pyc
+│   ├── extensions.cpython-313.pyc
+│   ├── models.cpython-312.pyc
+│   └── models.cpython-313.pyc
+├── api
+│   ├── __pycache__
+│   │   ├── desktop.ini
+│   │   ├── task_actions.cpython-312.pyc
+│   │   └── tasks.cpython-312.pyc
+│   ├── desktop.ini
+│   ├── task_actions.py
+│   └── tasks.py
+├── app - Copy.py
+├── app.py
+├── celery.py
+├── celery_app - Copy.py
+├── celery_app.py
+├── celery_utils.py
+├── cellery instalation.pdf
+├── config.py
+├── desktop.ini
+├── diagnostics.py
+├── exports.py
+├── extensions.py
+├── mail.py
+├── misc_tasks
+│   ├── celery_app_old.py
+│   ├── chat_utils.py
+│   ├── desktop.ini
+│   ├── export_tasks - Copy.py
+│   ├── export_tasks.py
+│   ├── mail_utils.py
+│   ├── scheduled_tasks - Copy.py
+│   ├── scheduled_tasks.py
+│   ├── tasks - Copy.py
+│   ├── tasks.py
+│   └── user_queries.py
+├── models - Copy.py
+├── models - UTC.py
+├── models.py
+├── operations.py
+├── pending.py
+├── radis_myth.txt
+├── routes
+│   ├── BigQuery.py
+│   ├── __init__.py
+│   ├── __pycache__
+│   │   ├── __init__.cpython-312.pyc
+│   │   ├── __init__.cpython-313.pyc
+│   │   ├── admin_routes.cpython-312.pyc
+│   │   ├── admin_routes.cpython-313.pyc
+│   │   ├── auth_routes.cpython-312.pyc
+│   │   ├── auth_routes.cpython-313.pyc
+│   │   ├── desktop.ini
+│   │   ├── user_routes.cpython-312.pyc
+│   │   └── user_routes.cpython-313.pyc
+│   ├── admin_routes.py
+│   ├── auth_routes.py
+│   ├── desktop.ini
+│   ├── lots.py
+│   ├── new_admin_routes.py
+│   ├── user_routes.py
+│   └── utils
+│       ├── __pycache__
+│       │   ├── auth.cpython-312.pyc
+│       │   ├── auth.cpython-313.pyc
+│       │   └── desktop.ini
+│       ├── auth.py
+│       └── desktop.ini
+├── services
+│   ├── __pycache__
+│   │   ├── desktop.ini
+│   │   ├── parking_service.cpython-312.pyc
+│   │   └── parking_service.cpython-313.pyc
+│   ├── desktop.ini
+│   ├── parking_service.py
+│   └── pending.txt
+├── tasks
+│   ├── __init__.py
+│   ├── __pycache__
+│   │   ├── __init__.cpython-312.pyc
+│   │   ├── celery_app.cpython-312.pyc
+│   │   ├── chat_utils.cpython-312.pyc
+│   │   ├── desktop.ini
+│   │   ├── export_tasks.cpython-312.pyc
+│   │   ├── mail_utils.cpython-312.pyc
+│   │   ├── scheduled_tasks.cpython-312.pyc
+│   │   ├── tasks.cpython-312.pyc
+│   │   └── user_queries.cpython-312.pyc
+│   ├── desktop.ini
+│   ├── misc.py
+│   ├── reminders.py
+│   ├── reports.py
+│   ├── rules.py
+│   └── simple.py
+├── tasks_pending.py
+└── utils
+    ├── __pycache__
+    │   ├── desktop.ini
+    │   └── storage.cpython-312.pyc
+    ├── desktop.ini
+    └── storage.py

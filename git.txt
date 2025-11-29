@@ -1,3 +1,12 @@
+git init
+git config --global user.name "Baskaran Nadar"
+git config --global user.email "24f2008200@ds.study.iitm.ac.in"
+git branch -m master main
+git remote add origin https://github.com/24f2008200/NewMad2.git
+ssh-keygen -t ed25519 -C "24f2008200@ds.study.iitm.ac.in"
+cat ~/.ssh/id_ed25519.pub    and paste it in github
+
+
 git ls-files
 
 git rm -r --cached .
@@ -21,6 +30,7 @@ git push -u origin master
 
 git branch   ==== to find branch name ?
 
+attrib +h .git  // to keep .git away from windows creating  *.ini
 
 
 See commit history
@@ -114,7 +124,7 @@ feature1 ? your local branch
 
 new-feature ? the branch name on GitHub
 
-If new-feature doesn’t exist yet, GitHub will create it.
+If new-feature doesnï¿½t exist yet, GitHub will create it.
 
 
 What you can do
@@ -193,7 +203,7 @@ git fetch origin
 git rebase origin/main
 
 
-If you don’t care about remote history (overwrite everything)
+If you donï¿½t care about remote history (overwrite everything)
 
 You can force push:
 

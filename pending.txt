@@ -1,0 +1,25 @@
+
+
+or write unit tests for the predicate evaluator and poller.
+
+If you want next:
+
+I can add a small endpoint POST /api/admin/preview_rule/<rule_id> that returns the list of sample matching users (limit N) — handy for the admin UI preview button.
+
+Or I can show you how to trigger Celery locally to pick up the ExportJob and the Rule runs (commands & minimal config).
+
+Or add more seed rules with different predicate combos.
+
+
+
+Security & production considerations
+
+Auth: Protect /api/admin/preview_rule and rule CRUD endpoints with admin-only auth. Do not expose to non-admin users.
+
+Preview limits: For large datasets, resolve_users_for_rule should sample dataset server-side (LIMIT/pagination) rather than fetch all.
+
+S3 credentials: Use IAM roles on hosting (AWS EC2/ECS) instead of storing keys. If you use keys, store them in environment variables in CI/CD or server secrets manager.
+
+File retention: Implement lifecycle rules on S3 (e.g., delete exports after 7 days).
+
+Rate-limits & batching: When dispatching actions for many users, batch and avoid hitting external APIs too fast.

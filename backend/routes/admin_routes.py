@@ -1,5 +1,5 @@
 
-from flask import request, send_file, Blueprint
+from flask import jsonify, request, send_file, Blueprint
 from flask_restful import Resource, Api
 from sqlalchemy import func, extract
 from reportlab.pdfgen import canvas
@@ -19,9 +19,14 @@ from backend.models import (
     Reservation,
     User,
     dateFormat,
+    model_to_dict_hybrid,
     search_all,
     ReminderJob,
-    model_to_dict
+    model_to_dict,
+    Rule,
+    ScheduledJobRun,
+    ExportJob,
+
 )
 from backend.routes.utils.auth import admin_required
 from backend.services.parking_service import get_all_lots
@@ -30,8 +35,11 @@ admin_bp = Blueprint("admin", __name__, url_prefix="/api/admin")
 api = Api(admin_bp)
 
 
-def serialize_list(queryset):
-    return [model_to_dict(obj) for obj in queryset]
+def serialize_list(queryset,hybrid=False):
+    if hybrid:
+        return [model_to_dict_hybrid(obj) for obj in queryset]
+    else:
+        return [model_to_dict(obj) for obj in queryset]
 
 
 class LotsResource(Resource):
@@ -338,9 +346,14 @@ class AdminReportResource(Resource):
             dt_start = datetime.strptime(start_date, "%Y-%m-%d").replace(tzinfo=timezone.utc)
             query = query.filter(Reservation.start_time >= dt_start)
 
+        end_date = data.get("endDate")
+        if end_date:
+            dt_end = datetime.strptime(end_date, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+            query = query.filter(Reservation.start_time <= dt_end)
+
         return [r.get_details for r in query.all()], 200
 
-    def _users(self, data):
+    def _users(self, data): 
         query = User.query
         email = data.get("email")
         if email:
@@ -354,7 +367,7 @@ class AdminReportResource(Resource):
         if isinstance(rr, bool):
             query = query.filter(User.receive_reminders == rr)
 
-        return serialize_list(query.all()), 200
+        return serialize_list(query.all(), hybrid=True), 200
 
     def _reminder_logs(self, data):
         page = int(data.get("page", 1))
@@ -427,7 +440,7 @@ class AdminReportResource(Resource):
         # return {
         #     "page": page_obj.page,
         #     "pages": page_obj.pages,
-        #     "total": page_obj.total,
+        #     "total": page_obj.total, 
         #     "items": logs,
         # }, 200
 
@@ -525,6 +538,7 @@ class PdfReportResource(Resource):
 
         p.save()
         buffer.seek(0)
+        print("PDF generated and ready to send.")
         return send_file(
             buffer,
             as_attachment=True,
@@ -532,6 +546,39 @@ class PdfReportResource(Resource):
             mimetype="application/pdf",
         )
 
+class PreviewResource(Resource):
+    method_decorators = [admin_required]
+
+    def post(self, rule_id):
+        """
+        Return a sample of users matched by the rule.
+        POST body: {"limit": 10}
+        """
+        payload = request.get_json(force=True, silent=True) or {}
+        limit = int(payload.get("limit", 10))
+        with api.app_context():
+            rule = db.session.query(Rule).get(rule_id)
+            if not rule:
+                return jsonify({"error": "rule not found"}), 404
+
+            # Resolve all matched user ids (be careful with large sets in production; we assume modest size)
+            matched_ids = resolve_users_for_rule(rule, db.session)
+
+            # Limit results
+            sample_ids = matched_ids[:limit]
+
+            # Fetch minimal user info
+            users = db.session.query(User).filter(User.id.in_(sample_ids)).all()
+            out = []
+            for u in users:
+                out.append({
+                    "id": u.id,
+                    "name": u.name,
+                    "email": u.email,
+                    "last_login_ist": to_ist(u.last_login).isoformat() if u.last_login else None,
+                    "reminder_time": u.reminder_time,
+                })
+            return jsonify({"matched_count": len(matched_ids), "sample": out})
 
 api.add_resource(LotsResource, "/lots")
 api.add_resource(LotResource, "/lots/<int:lot_id>")
@@ -539,3 +586,4 @@ api.add_resource(SlotResource, "/slots/<int:slot_id>")
 api.add_resource(SearchResource, "/search")
 api.add_resource(AdminReportResource, "/reports")
 api.add_resource(PdfReportResource, "/reports/pdf")
+api.add_resource(PreviewResource, "/preview_rule/<int:rule_id>")

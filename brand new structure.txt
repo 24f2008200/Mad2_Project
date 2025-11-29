@@ -1,0 +1,14 @@
+backend/
+    app.py
+    config.py
+    extensions.py
+    celery_instance.py      ← NEW
+    celery_setup.py         ← NEW
+    celery_app.py           ← NEW (ONLY worker uses it)
+    tasks/
+        __init__.py
+        simple.py
+        reminders.py
+        reports.py
+        rules.py
+        misc.py

@@ -1,0 +1,134 @@
+📘 Parking App — Setup & Demo Guide (Exam-Ready)
+
+This document describes the exact steps to set up and run the Parking Management System on any Windows 11 machine using WSL2 + Python + Redis + Celery + Flask + Vue.js.
+Follow these commands exactly as written, and the entire system runs end-to-end.
+
+✅ Prerequisites (only once per computer)
+1. Install WSL2 (Ubuntu)
+
+Run in PowerShell (Admin):
+
+wsl --install
+
+
+Restart if prompted.
+
+2. Open project folder inside WSL
+
+In VSCode:
+Ctrl + Shift + P → “WSL: Open Folder in WSL”
+Select the project folder NewMad2/.
+
+🚀 Setup (done once per clean machine)
+
+All commands below run inside the WSL Ubuntu terminal.
+
+1. Install system dependencies
+sudo apt update
+sudo apt install -y python3 python3-venv python3-pip redis-server build-essential
+
+2. Start Redis
+sudo service redis-server start
+redis-cli ping   # should print PONG
+
+3. Create & activate virtual environment
+cd /path/to/NewMad2
+python3 -m venv .venv
+source .venv/bin/activate
+
+4. Install Python dependencies
+pip install --upgrade pip setuptools wheel
+pip install -r requirements.txt
+
+
+(If no requirements.txt, install manually: Flask, SQLAlchemy, Celery, Redis, Croniter, Boto3, etc.)
+
+5. Configure environment variables
+
+Create .env file in project root:
+
+FLASK_APP=backend.app:create_app
+FLASK_ENV=development
+DATABASE_URL=sqlite:///./dev.db
+
+CELERY_BROKER_URL=redis://localhost:6379/0
+CELERY_RESULT_BACKEND=redis://localhost:6379/1
+
+DEFAULT_GOOGLE_CHAT_WEBHOOK=
+AWS_ACCESS_KEY_ID=
+AWS_SECRET_ACCESS_KEY=
+S3_BUCKET=
+S3_EXPORT_PREFIX=exports/
+
+6. Initialize database + seed demo data
+python seed.py
+
+🟢 Run the System (4 terminals)
+
+Open 4 WSL terminals, each with:
+
+cd /path/to/NewMad2
+source .venv/bin/activate
+
+Terminal 1 — Celery Worker
+python -m celery -A backend.celery_app:celery worker -l info
+
+Terminal 2 — Celery Beat (Scheduler)
+python -m celery -A backend.celery_app:celery beat -l info
+
+Terminal 3 — Flask Backend API
+cd backend
+flask run --host=0.0.0.0 --port=5000
+
+Terminal 4 — Vue Frontend
+
+(Windows terminal is also fine)
+
+cd frontend
+npm install
+npm run dev
+
+🧪 Quick Test & Demo Commands
+Preview rule from backend:
+curl -X POST "http://localhost:5000/api/admin/preview_rule/1" \
+     -H "Content-Type: application/json" \
+     -d '{"limit":5}'
+
+Manually trigger rule:
+python - <<'PY'
+from backend.tasks.tasks import run_rule
+run_rule.delay(1)
+print("Triggered rule 1")
+PY
+
+Trigger export job:
+python - <<'PY'
+from backend.models import db, ExportJob
+from backend.tasks.tasks import export_user_csv
+
+job = db.session.query(ExportJob).filter_by(status='pending').first()
+print("Export job:", job.id)
+export_user_csv.delay(job.id)
+PY
+
+🎯 Demo Plan (Professor-Friendly)
+
+Seed DB: python seed.py
+
+Start worker & beat: show live logs
+
+Preview rule from admin panel
+
+Trigger rule → watch Celery log
+
+Trigger export job → show resulting CSV download URL
+
+Open Vue UI and demonstrate booking/reservation flow
+
+🛠 Troubleshooting (Very Short)
+Problem	Fix
+redis not found	pip install redis
+Celery cannot import app	Use backend.celery_app:celery (colon)
+Running as root warning	Use normal WSL user, not root
+Worker cannot connect to Redis	Check: redis-cli ping
+Vue cannot reach backend	Restart Flask or fix CORS/port

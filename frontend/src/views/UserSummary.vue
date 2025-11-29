@@ -31,10 +31,10 @@
               <canvas id="monthlyExpensesChart"></canvas>
             </div>
 
-            <div class="mt-3 d-flex justify-content-end">
+            <!-- <div class="mt-3 d-flex justify-content-end">
               <button class="btn btn-outline-secondary btn-sm me-2" @click="downloadCsv('monthly')">Export CSV</button>
               <button class="btn btn-primary btn-sm" @click="openDetails('monthly')">View details</button>
-            </div>
+            </div> -->
           </div>
         </div>
       </div>
@@ -101,12 +101,12 @@
                 <tr v-if="recentReservations.length === 0">
                   <td colspan="4" class="text-center small text-muted p-3">No recent reservations</td>
                 </tr>
-                <tr>
+                <!-- <tr>
                   <div class="container mt-4">
                     <CSVExportCard />
                   </div>
 
-                </tr>
+                </tr> -->
               </tbody>
             </table>
           </div>
@@ -140,14 +140,17 @@
 <script setup>
 import CSVExportCard from "@/components/CSVExportCard.vue"
 import { ref, onMounted, computed } from 'vue'
-import { useRouter } from "vue-router";
-import { useAuth } from "../stores/auth";
+// import { useRouter } from "vue-router";
+import { useAuthStore} from "../stores/auth";
 import { useSearchStore } from "../stores/search";
 import { apiFetch } from "@/api";
 import { watch } from "vue";
 import UserProfileModal from '../components/UserProfileModal.vue';
-import { Chart, registerables } from 'chart.js'
-Chart.register(...registerables)
+
+import { CategoryScale, LinearScale, BarElement, LineElement } from 'chart.js';
+import { storeToRefs } from "pinia";
+const auth = useAuthStore();
+const {token} = storeToRefs(auth);
 
 const selectedYear = ref(new Date().getFullYear())
 const years = ref([])
@@ -161,7 +164,7 @@ const modalTitle = ref('')
 const modalContent = ref('')
 
 const searchStore = useSearchStore()
-const { token } = useAuth();
+// const { token } = useAuthStore();
 
 let monthlyChart = null
 let locationChart = null

@@ -98,6 +98,13 @@ class SpotActivityResource(Resource):
 
         r.end_time = utcnow()
         r.spot.status = "A"
+
+        if r.start_time.tzinfo is None:
+            r.start_time = r.start_time.replace(tzinfo=timezone.utc)
+        if r.end_time.tzinfo is None:
+            r.end_time = r.end_time.replace(tzinfo=timezone.utc)
+            
+        print(r.start_time, r.end_time)
         dur_hrs = (r.end_time - r.start_time).total_seconds() / 3600
         r.parking_fee = round(dur_hrs * r.spot.lot.price, 2)
         db.session.commit()
@@ -266,7 +273,7 @@ class PinCodesResource(Resource):
     def get(self):
         pin_codes = db.session.query(ParkingLot.pin_code).distinct().all()
         return [p[0] for p in pin_codes], 200
-
+ 
 
 class UserProfileResource(Resource):
     method_decorators = [auth_required]
@@ -279,15 +286,62 @@ class UserProfileResource(Resource):
             "id": user.id,
             "name": user.name,
             "email": user.email,
+            "mobile": user.mobile,
+            "address": user.address,
+            "receive_reminders": user.receive_reminders,
+            "reminder_time": user.reminder_time,
+            "google_chat_webhook": user.google_chat_webhook,
+            "total_reservations": user.total_reservations,
+            "active_reservations": user.active_reservations,
+            "last_login": dateFormat(user.last_login),
+            "billing": user.billing,
+            "last_active": dateFormat(user.last_active),
+
         }, 200
+    def put(self, user_id):
+        user = db.session.get(User, user_id)
+        if not user:
+            return {"error": "User not found"}, 404
 
+        data = request.get_json() or {}
+        print(data)
+        user.name = data.get("name", user.name)
+        user.email = data.get("email", user.email)
+        user.mobile = data.get("mobile", user.mobile)
+        user.address = data.get("address", user.address)
+        user.receive_reminders = data.get("receive_reminders", user.receive_reminders)
+        user.reminder_time = data.get("reminder_time", user.reminder_time)
+        user.google_chat_webhook = data.get("google_chat_webhook", user.google_chat_webhook)
 
+        password = data.get("password")
+        confirm_password = data.get("confirm_password")
+        if password:
+            if password != confirm_password:
+                return {"error": "Passwords do not match"}, 400
+            user.set_password(password)
+
+        db.session.commit()
+        return {"message": "Profile updated"}, 200
+
+ 
 class UserReservationsResource(Resource):
     method_decorators = [auth_required]
 
-    def get(self):
+    def post(self):
         user = current_user()
+        data = request.get_json() or {}
         reservations = Reservation.query.filter_by(user_id=user.id).all()
+        for r in reservations:
+            if r.start_time.tzinfo is None:
+                r.start_time = r.start_time.replace(tzinfo=timezone.utc)
+        start_date = data.get("startDate")
+        if start_date:
+            dt_start = datetime.strptime(start_date, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+            reservations = [r for r in reservations if r.start_time >= dt_start]
+        end_date = data.get("endDate")
+        if end_date:
+            dt_end = datetime.strptime(end_date, "%Y-%m-%d").replace(tzinfo=timezone.utc)+ timedelta(days=1)
+            reservations = [r for r in reservations if r.start_time <= dt_end]
 
         result = []
         for r in reservations:

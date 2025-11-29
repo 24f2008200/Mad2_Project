@@ -1,9 +1,13 @@
 // src/services/CSVExportService.js
 import { apiFetch } from "@/api";
-import { useAuth } from "../stores/auth";
+import { useAuthStore} from "../stores/auth";
+
+// const auth = useAuthStore();
+// const { token } = storeToRefs(auth);
+
 export async function startCSVExport() {
   const url = "/api/user/export-csv";
-  const { token } = useAuth();
+  const { token } = useAuthStore();
   const res = await apiFetch(url, {
     headers: { Authorization: `Bearer ${token.value}`, "Content-Type": "application/json" },
     method: "POST",

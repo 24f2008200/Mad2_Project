@@ -1,0 +1,373 @@
+1) Update apt and install pip + venv support
+# update package lists
+sudo apt update
+
+# install pip (python3-pip) and venv support (and build tools if needed)
+sudo apt install -y python3-pip python3-venv build-essential
+
+
+If you see a prompt to continue, accept.
+
+2) Verify Python and pip
+python3 --version
+python3 -m pip --version
+
+
+If python3 -m pip --version works, pip is installed.
+
+3) Create & activate a virtual environment (recommended)
+
+From your project root (adjust path):
+
+cd /mnt/c/Path/To/Your/Project  # or wherever your repo is mounted in WSL
+python3 -m venv .venv
+source .venv/bin/activate
+
+
+Your prompt should now show (.venv).
+
+4) Upgrade pip, setuptools, wheel inside the venv
+python -m pip install --upgrade pip setuptools wheel
+
+
+(Using python here runs the venv Python.)
+
+5) Install required Python packages
+
+Install Celery, Redis client, and other libs you need:
+
+pip install celery redis boto3 croniter requests sqlalchemy flask
+# add any other project requirements (Flask extensions, your DB driver etc.)
+
+
+If you have a requirements.txt:
+
+pip install -r requirements.txt
+
+6) Confirm celery & vine versions (in the venv)
+python -c "import celery, vine, sys; print('celery', celery.__version__); print('vine', vine.__version__); print(sys.executable)"
+# and also:
+which celery      # should point to .venv/bin/celery
+
+
+If which celery still points to /usr/bin/celery, use python -m celery instead (below).
+
+7) Install & run Redis (in WSL)
+# install redis-server
+sudo apt install -y redis-server
+
+# start redis
+sudo service redis-server start
+
+# quick check
+redis-cli ping
+# should print: PONG
+
+
+If you prefer Redis from source or use docker, that's fine too.
+
+8) Run Celery worker & beat (from project root with venv active)
+
+Use python -m celery to avoid shell picking wrong binary:
+
+# worker
+python -m celery -A tasks worker -l info
+
+# in another terminal (also with venv activated) start beat
+python -m celery -A tasks beat -l info
+
+
+(Adjust -A tasks if your Celery app object is in a different module.)
+
+9) If you must use system Python (not recommended)
+
+You can install pip system-wide (not ideal):
+
+sudo apt install -y python3-pip
+sudo python3 -m pip install --upgrade pip
+sudo python3 -m pip install celery redis "vine>=5.1.0,<6.0"
+
+
+Then run:
+
+python3 -m celery -A tasks worker -l info
+
+
+But again — virtualenv is safer.
+
+Troubleshooting
+
+No module named pip after apt install python3-pip? Try:
+
+sudo apt install -y --reinstall python3-pip
+
+
+If which celery points to /usr/bin/celery even with venv active, run hash -r then which celery, or call python -m celery explicitly.
+
+If you get permission or socket errors with Redis, check sudo service redis-server status and logs in /var/log/redis/.
+
+
+
+Setup & Demo Runbook — Option A (WSL2 + venv) — Recommended for Windows 11
+
+Use WSL2 (Ubuntu) terminal inside VSCode. This is what we used in our session and is reliable.
+
+0. Before you start (what to bring)
+
+Project folder: NewMad2/ with backend/, frontend/, seed.py, requirements.txt, .env.example
+
+A copy of instructions (this runbook)
+
+Credentials if using S3 (or set .env to use local file storage)
+
+Notebook with commands (optional)
+
+1. Install WSL2 (if not already)
+
+Run in PowerShell (Admin):
+
+wsl --install
+
+
+Reboot if prompted. Install Ubuntu from the Microsoft Store if needed.
+
+2. Open project folder in WSL (VSCode)
+
+In VSCode: Ctrl+Shift+P → WSL: Reopen Folder in WSL and open your project path (e.g. /mnt/c/Users/you/Projects/NewMad2).
+
+3. Install system packages (Ubuntu)
+# in WSL terminal
+sudo apt update
+sudo apt install -y python3 python3-venv python3-pip redis-server build-essential
+
+4. Create & activate virtualenv
+cd /path/to/NewMad2        # project root
+python3 -m venv .venv
+source .venv/bin/activate
+
+5. Install Python dependencies
+
+(You should have a requirements.txt; if not, install the main ones)
+
+pip install --upgrade pip setuptools wheel
+pip install -r requirements.txt
+# if you don't have requirements.txt:
+pip install flask sqlalchemy celery redis boto3 croniter requests werkzeug
+
+6. Configure environment variables
+
+Create .env in project root (copy from .env.example), set minimal values:
+
+FLASK_APP=backend.app:create_app
+FLASK_ENV=development
+DATABASE_URL=sqlite:///./dev.db
+CELERY_BROKER_URL=redis://localhost:6379/0
+CELERY_RESULT_BACKEND=redis://localhost:6379/1
+DEFAULT_GOOGLE_CHAT_WEBHOOK= # optional
+AWS_ACCESS_KEY_ID=
+AWS_SECRET_ACCESS_KEY=
+S3_BUCKET=
+S3_EXPORT_PREFIX=exports/
+
+
+For exam/demo set AWS_* blank and code will produce file:// local paths for exports (we included that fallback).
+
+7. Initialize database & seed data
+# ensure Flask app sees .env (if using python-dotenv the app will auto-load)
+python seed.py
+# seed.py will drop_all() and create_all(); it seeds users, lots, reservations, rules and one ExportJob
+
+8. Start Redis
+sudo service redis-server start
+redis-cli ping   # should respond PONG
+
+9. Start Celery worker & beat (in two separate WSL terminals)
+
+Activate venv in each terminal:
+
+# Terminal A (worker)
+cd /path/to/NewMad2
+source .venv/bin/activate
+python -m celery -A backend.celery_app:celery worker -l info
+
+# Terminal B (beat)
+cd /path/to/NewMad2
+source .venv/bin/activate
+python -m celery -A backend.celery_app:celery beat -l info
+
+
+If you used a different Celery variable name, replace backend.celery_app:celery accordingly. Use --uid nobody only if forced to run as root.
+
+10. Start Flask backend (another terminal)
+cd /path/to/NewMad2/backend
+source ../.venv/bin/activate   # or same venv
+# run your app (depends on your app factory)
+flask run --host=0.0.0.0 --port=5000
+# or python -m backend.app if you have script
+
+11. Start Vue frontend (Windows or WSL)
+
+Either from Windows powershell or inside WSL (if you installed Node there):
+
+# if frontend folder exists and package.json present
+cd /path/to/NewMad2/frontend
+npm install
+npm run dev   # or npm run serve depending on setup
+
+12. Smoke tests & demo commands
+
+Preview rule (admin preview API):
+
+curl -X POST http://localhost:5000/api/admin/preview_rule/1 -H "Content-Type: application/json" -d '{"limit":5}'
+
+
+Manually enqueue an export job (replace id from DB):
+
+python - <<'PY'
+from backend.models import ExportJob, db
+from backend.tasks.tasks import export_user_csv
+job = db.session.query(ExportJob).filter_by(status='pending').first()
+print(job.id, job.status)
+export_user_csv.delay(job.id)
+PY
+
+
+Watch worker terminal for task logs. When export completes, ExportJob.result_url will be updated (S3 presigned or file:// local path).
+
+Setup & Demo Runbook — Option B (docker-compose) — One-command demo
+
+If the exam environment allows Docker Desktop / WSL integration, this is the easiest reproducible approach. Create docker-compose.yml (example below) and run everything with one command.
+
+example docker-compose.yml (minimal)
+version: '3.8'
+services:
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+
+  db:
+    image: nouchka/sqlite3 # optional; DB can be file-backed volume or use bind mount
+    # for simplicity, we'll use sqlite file inside app container
+
+  backend:
+    build: ./backend
+    volumes:
+      - ./backend:/app
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+    depends_on:
+      - redis
+    command: sh -c "python seed.py && python -m flask run --host=0.0.0.0"
+
+  worker:
+    build: ./backend
+    volumes:
+      - ./backend:/app
+    depends_on:
+      - redis
+      - backend
+    command: python -m celery -A backend.celery_app:celery worker -l info
+
+
+Run:
+
+docker-compose up --build
+
+
+This runs redis, backend, and worker. You can extend with a beat service.
+
+Docker approach ensures the professor can reproduce the environment by running docker-compose up.
+
+Exam checklist — what to carry / show the professor
+
+Project folder (zip or USB or git clone URL) with:
+
+backend/ (Python files, models, tasks)
+
+frontend/ (Vue app)
+
+seed.py
+
+.env.example
+
+requirements.txt and package.json
+
+docker-compose.yml (optional)
+
+A short README with two commands:
+
+WSL method: steps 4–11 above condensed
+
+Docker method: docker-compose up --build
+
+If using S3: credentials (or set to local mode)
+
+A test plan (3 quick demo actions):
+
+Preview rule API → show matched users
+
+Trigger rule / poller → show worker logs sending reminders
+
+Trigger export → show file URL/download
+
+Bring your laptop charger. 😊
+
+Useful single-page cheat sheet (copy this into README for the exam)
+
+WSL quick-start (copy/paste):
+
+# inside WSL (project root)
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+sudo apt install -y redis-server
+sudo service redis-server start
+python seed.py
+# terminal 1
+source .venv/bin/activate
+python -m celery -A backend.celery_app:celery worker -l info
+# terminal 2
+source .venv/bin/activate
+python -m celery -A backend.celery_app:celery beat -l info
+# terminal 3
+source .venv/bin/activate
+flask run
+# terminal 4 (Windows or WSL)
+cd frontend
+npm install
+npm run dev
+
+
+Docker quick-start:
+
+docker-compose up --build
+
+Troubleshooting — quick fixes
+
+Celery says module not found / attribute → ensure you used module:attribute (colon :). Example: python -m celery -A backend.celery_app:celery worker -l info.
+
+redis import error → activate venv and pip install redis.
+
+Worker complains about vine / system packages → use venv and run pip install -r requirements.txt.
+
+Worker warns about root → do not run as root; exit root shell and run as normal user. Use --uid nobody only if stuck.
+
+Ports busy (6379 / 5000 / 3000) → either stop conflicting services or change port in .env.
+
+DB empty / seed didn't run → run python seed.py (it drops & recreates DB).
+
+Frontend fails to connect to backend → ensure backend is running and CORS allowed; check console network errors.
+
+Final notes & recommended demo flow to impress the professor
+
+Start with seed.py to show DB populated.
+
+Show admin UI and create/modify a Rule (or use seeded ones).
+
+Use Preview button — show list of users who will be targeted.
+
+Trigger poll_rules or wait for beat to run — show Celery worker logs and a sample notification (GChat webhook or email; if offline use logs).
+
+Trigger an export job from UI and show the CSV download link once worker finishes.

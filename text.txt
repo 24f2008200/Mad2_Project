@@ -1,7 +1,10 @@
 
-python -m venv venv
-source venv/Scripts/activate
+python -m venv .venv
+source .venv/Scripts/activate
+source .venv/bin/activate
+
 pip install -r requirements.txt
+python3 -m pip install -r requirements.txt
 ./venv/Scripts/python.exe -m pip install -r requirements.txt
 
 python -m backend.init_db
@@ -10,12 +13,9 @@ python -m backend.init_db
 python -m init_db.app
 python -m backend.app
 
-python -m backend.app redis 0 
-python -m backend.app redis 1 
-python -m backend.app redis 2 
+python -m backend.app redis L 
 
 
-cd frontend
 npm run dev
 
 Ubuntu (WSL) terminal

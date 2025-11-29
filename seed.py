@@ -1,35 +1,48 @@
+# seed.py
 import os
-from backend.models import db, User, ParkingLot, ParkingSpot, Reservation
-from datetime import datetime, timedelta, UTC
-from werkzeug.security import generate_password_hash
-from backend.app import create_app, db
-from backend.models import User
 import random
-from seed_data import *
+import string
+import datetime
+from datetime import datetime as dt, timedelta, time, date
+
 from dotenv import load_dotenv
+from werkzeug.security import generate_password_hash
+
+# Import your app and models
+from backend.app import create_app, db
+from backend.models import User, ParkingLot, ParkingSpot, Reservation
+
+# Your seed lists (lots, names, drivers, streets, state_codes, locations, cities, etc.)
+# This file is expected to exist and provide required lists exactly as your prior setup.
+from seed_data import lots as seed_lots, names, drivers, streets, state_codes, locations, cities
 
 load_dotenv()
 
-default_google_chat_webhook = os.getenv("DEFAULT_GOOGLE_CHAT_WEBHOOK", "https://chat.googleapis.com/v1/spaces/AAQAwtQ63ag/messages?key=AIzaSyDdI0hCZtE6vySjMm-WEfRq3CPzqKqqsHI&token=5MYSUrPN6reLnOlxNcejvgkOJ35PtxS2QRY6c_FTM7c")
-
+# Environment-driven size logic (same as your previous code)
 size = int(os.getenv("DATA_SIZE", 0))
 
-no_users = 5 if size == 0 else 25 if size ==1 else 50
-no_lots = 5 if size == 0 else 10 if size ==1 else 20
-no_drivers = 5 if size == 0 else 50 if size ==1 else 100
-no_cars = 5 if size == 0 else 50 if size ==1 else 100
-no_of_back_days= 30 if size == 0 else 60 if size ==1 else 90
-no_of_back_days *= 2
+no_users = 5 if size == 0 else 25 if size == 1 else 50
+no_lots = 5 if size == 0 else 10 if size == 1 else 20
+no_drivers = 5 if size == 0 else 50 if size == 1 else 100
+no_cars = 5 if size == 0 else 50 if size == 1 else 100
+no_of_back_days = 30 if size == 0 else 60 if size == 1 else 90
+no_of_back_days *= 2   # preserve your original doubling behavior
 
+# Optional default webhook
+default_google_chat_webhook = os.getenv(
+    "DEFAULT_GOOGLE_CHAT_WEBHOOK",
+    "https://example.invalid/webhook"  # placeholder if not provided
+)
 
-app = create_app(False,size)
+app = create_app()
 
 with app.app_context():
+
+    # Reset DB
     db.drop_all()
     db.create_all()
 
-
-
+    # --------------- Create Admin and demo users ------------------
     admin = User(
         name="Admin",
         email="admin@example.com",
@@ -37,10 +50,11 @@ with app.app_context():
         role="admin",
         is_admin=True,
         mobile="123454321",
-        address="44, Lalbagh Road, Lucknow"
+        address="44, Lalbagh Road, Lucknow",
     )
     db.session.add(admin)
-    admin2 = User(
+
+    demo1 = User(
         name="Baskaran",
         email="24f2008200@ds.study.iitm.ac.in",
         password=generate_password_hash("123"),
@@ -48,12 +62,13 @@ with app.app_context():
         is_admin=False,
         mobile="123454321",
         address="44, Lalbagh Road, Lucknow",
-        receive_reminders = True,
-        reminder_time = "18:00",
-        google_chat_webhook = default_google_chat_webhook
+        receive_reminders=True,
+        reminder_time="18:00",
+        google_chat_webhook=default_google_chat_webhook,
     )
-    db.session.add(admin2)
-    admin3 = User(
+    db.session.add(demo1)
+
+    demo2 = User(
         name="Madhavi",
         email="dad@makshi.in",
         password=generate_password_hash("123"),
@@ -61,218 +76,232 @@ with app.app_context():
         is_admin=False,
         mobile="123454321",
         address="44, Lalbagh Road, Lucknow",
-        receive_reminders = True,
-        reminder_time = "18:10",
-        google_chat_webhook = default_google_chat_webhook
+        receive_reminders=True,
+        reminder_time="18:10",
+        google_chat_webhook=default_google_chat_webhook,
     )
-    db.session.add(admin3)
-    users = []
-    for i in range(no_users):
-        name = names[i]
-        email = f"{name.lower()}@example.com"
-        # pwd = f"{name[:3].lower()}123"
-        pwd = "123"
-        password = generate_password_hash(pwd)
-        mobile = "".join([str(random.randint(6, 9))] + [str(random.randint(0, 9)) for _ in range(9)])
-        address = str(random.randint(6, 9)) +"," + random.choice(streets) \
-            +","  +  random.choice(locations) \
-            +"," + random.choice(cities)
-        user = User(
-            name = name,
-            email= email,
-            password = password,
-            is_admin= False,
-            mobile = mobile,
-            role = "user",
-            address = address,
-            receive_reminders = False,
-            reminder_time = "18:00",
-            google_chat_webhook = None
-        )
-        db.session.add(user)
-        db.session.flush()
-        db.session.commit()
+    db.session.add(demo2)
 
-
-    lots = lots[:no_lots]
-    for lot in lots:
-        db.session.add(lot)
-        # db.session.flush()
     db.session.commit()
 
-    s =0
-    for l in lots:
-        s += l.max_slots
-    import random
-    import datetime
-    import string
+    # --------------- Create additional random users ------------------
+    users = []
+    for i in range(no_users):
+        nm = names[i % len(names)]
+        email = f"{nm.lower()}@example.com"
+        password = generate_password_hash("123")
+        mobile = "".join([str(random.randint(6, 9))] + [str(random.randint(0, 9)) for _ in range(9)])
+        address = (
+            str(random.randint(1, 999)) + ", " +
+            random.choice(streets) + ", " +
+            random.choice(locations) + ", " +
+            random.choice(cities)
+        )
 
-    NUM_SLOTS = s
-    
+        user = User(
+            name=nm,
+            email=email,
+            password=password,
+            is_admin=False,
+            mobile=mobile,
+            role="user",
+            address=address,
+            receive_reminders=False,
+            reminder_time="18:00",
+            google_chat_webhook=None,
+        )
+        db.session.add(user)
+        users.append(user)
 
-    NUM_CARS = no_cars
-    drivers = drivers[:no_drivers]
-    NUM_DRIVERS = len(drivers)
+    db.session.commit()
+
+    # Collect non-admin user ids for reservation assignment (exclude admin)
+    regular_users = User.query.filter(User.role == "user").all()
+    regular_user_ids = [u.id for u in regular_users]
+
+    # --------------- Insert lots (uses your seed_lots) ------------------
+    seed_lots = seed_lots[:no_lots]  # truncate list as per size
+    for lot in seed_lots:
+        # `lot` items from seed_data might already be ParkingLot objects or dicts; handle both
+        if isinstance(lot, ParkingLot):
+            db.session.add(lot)
+        elif isinstance(lot, dict):
+            db.session.add(ParkingLot(**lot))
+        else:
+            # assume dataclass-like / object with attributes
+            db.session.add(ParkingLot(**lot.__dict__))
+
+    db.session.commit()  # Important: triggers after_insert handler to create spots
+
+    # --------------- Load real ParkingSpot rows and group by lot ------------------
+    all_spots = ParkingSpot.query.order_by(ParkingSpot.id).all()
+    if not all_spots:
+        raise RuntimeError("No ParkingSpot rows were created. Ensure ParkingLot.after_insert listener works.")
+
+    spots_by_lot = {}
+    for spot in all_spots:
+        spots_by_lot.setdefault(spot.lot_id, []).append(spot.id)
+
+    # Build a mapping lot_id -> lot object (for price)
+    lots_db = {lot.id: lot for lot in ParkingLot.query.all()}
+
+    # --------------- Build car numbers and drivers ------------------
+    # Generate random car registration numbers (same algorithm you used)
     car_numbers = []
-
-    for _ in range(NUM_CARS):
-        state = random.choice(state_codes)                       # 2-letter state
-        district = f"{random.randint(1, 99):02d}"               # 2-digit district
-        series = random.choice(string.ascii_uppercase)           # 1 letter
-        number = f"{random.randint(1, 9999):04d}"               # 4-digit number
+    for _ in range(no_cars):
+        state = random.choice(state_codes)
+        district = f"{random.randint(1, 99):02d}"
+        series = random.choice(string.ascii_uppercase)
+        number = f"{random.randint(1, 9999):04d}"
         car_number = f"{state} {district}{series} {number}"
         car_numbers.append(car_number)
-    drivers_dict = {entry["name"]: entry["mobile"] for entry in drivers}
-    driver_names = list(drivers_dict.keys())
-    # Spot weight levels
-    spot_weights = []
-    for i in range(1, NUM_SLOTS+1):
-        if 1 <= i <= 5:       # VIP
-            spot_weights.append(10)
-        elif 6 <= i <= 15:    # Premium
-            spot_weights.append(5)
-        else:                 # Normal
-            spot_weights.append(1)
 
-    # Time dependency (hour → weight for demand)
+    # Drivers dict from seed `drivers` list (expecting list of dicts with 'name' and 'mobile')
+    drivers_dict = {entry["name"]: entry["mobile"] for entry in drivers[:no_drivers]}
+    driver_names = list(drivers_dict.keys())
+
+    # --------------- Availability trackers: per car and per spot ------------------
+    # car_next_free: maps car_number -> datetime or None (None means free)
+    car_next_free = {car: None for car in car_numbers}
+
+    # spot_next_free: maps spot_id -> datetime or None
+    spot_next_free = {spot.id: None for spot in all_spots}
+
+    # --------------- Time weighting / optional demand shaping ------------------
     time_weights = {
-        # Morning
         8: 0.3, 9: 0.5, 10: 0.6, 11: 0.7,
-        # Midday peak
         12: 1.0, 13: 1.0, 14: 0.9, 15: 0.8,
-        # Evening
         16: 0.7, 17: 0.8, 18: 0.6, 19: 0.5, 20: 0.4
     }
 
-
-
-    def generate_reservations(history_days=7):
+    # --------------- Reservation generation ------------------
+    def generate_reservations_fixed(history_days):
         reservations = []
-        today = datetime.date.today()
-        start_date = today - datetime.timedelta(days=history_days-1)
 
-        # Track when each car is next available
-        car_next_free = {
-            car: datetime.datetime.combine(start_date, datetime.time(8))
-            for car in car_numbers
-        }
+        today_date = date.today()
+        start_date = today_date - timedelta(days=history_days - 1)
+
+        # Flatten lot list for selection
+        lots_list = list(lots_db.values())
 
         for day_offset in range(history_days):
-            date = start_date + datetime.timedelta(days=day_offset)
-            weekday = date.weekday()  # Monday=0, Sunday=6
-
+            the_date = start_date + timedelta(days=day_offset)
+            weekday = the_date.weekday()
             weekend_boost = 1.5 if weekday >= 5 else 1.0
 
-            for hour in range(8, 21):  # 8 AM – 8 PM
-                now = datetime.datetime.combine(date, datetime.time(hour))
+            for hour in range(8, 21):  # 8 AM – 8 PM inclusive
+                now = datetime.datetime.combine(the_date, time(hour))
 
-                available_cars = [
-                    car for car, free_time in car_next_free.items()
-                    if now >= free_time
-                ]
-                available_drivers = driver_names[:]
-                available_spots = list(range(1, NUM_SLOTS+1))
-
-                base_min, base_max = int(NUM_SLOTS*.1), int(NUM_SLOTS*.9)
+                # Compute demand weight
                 weight = time_weights.get(hour, 0.5) * weekend_boost
-                num_reservations = random.randint(
-                    int(base_min * weight),
-                    max(int(base_max * weight), 1)
-                )
 
-                for _ in range(num_reservations):
-                    if not available_cars or not available_drivers or not available_spots:
-                        break
+                # For each hour we select a random subset of lots to host reservations
+                # This simulates activity across lots
+                lots_sample = random.sample(lots_list, k=min(len(lots_list), max(1, int(len(lots_list) * 0.5))))
+                for lot in lots_sample:
+                    lot_spot_ids = spots_by_lot.get(lot.id, [])
+                    if not lot_spot_ids:
+                        continue
 
-                    car = random.choice(available_cars)
-                    available_cars.remove(car)
+                    # free spots in this lot at 'now'
+                    free_spots = [
+                        sp for sp in lot_spot_ids
+                        if spot_next_free.get(sp) is None or spot_next_free.get(sp) <= now
+                    ]
 
-                    driver = random.choice(available_drivers)
-                    driver_mobile = drivers_dict[driver]
-                    available_drivers.remove(driver)
+                    # free cars at 'now'
+                    free_cars = [
+                        car for car, free_at in car_next_free.items()
+                        if free_at is None or free_at <= now
+                    ]
 
-                    weights = [spot_weights[s-1] for s in available_spots]
-                    spot_no = random.choices(available_spots, weights=weights, k=1)[0]
-                    available_spots.remove(spot_no)
+                    if not free_spots or not free_cars:
+                        continue
 
-                    duration = random.randint(1,48)
-                    start_time = now
-                    end_time = start_time + datetime.timedelta(hours=duration)
+                    # Determine how many reservations to attempt for this lot & hour
+                    base_min = max(1, int(len(free_spots) * 0.02))
+                    base_max = max(1, int(len(free_spots) * 0.15))
+                    num_reservations = random.randint(base_min, min(base_max, len(free_spots)))
+                    num_reservations = max(1, int(num_reservations * weight))
 
-                    # If past 8 PM, leave it as ongoing (overnight)
-                    if end_time.hour > 20:
-                        end_time = None
+                    # Cap by available resources
+                    num_reservations = min(num_reservations, len(free_spots), len(free_cars))
 
-                    # Update car availability
-                    if end_time:
+                    random.shuffle(free_spots)
+                    random.shuffle(free_cars)
+
+                    for _ in range(num_reservations):
+                        if not free_spots or not free_cars:
+                            break
+
+                        car = free_cars.pop()
+                        spot_id = free_spots.pop()
+                        driver = random.choice(driver_names) if driver_names else None
+                        driver_mobile = drivers_dict.get(driver) if driver else None
+
+                        duration_hours = random.randint(1, 6)
+                        end_time = now + timedelta(hours=duration_hours)
+
+                        # small chance it's ongoing (end_time = None)
+                        if random.random() < 0.20:
+                            end_time = None
+
+                        # Register reservation entry
+                        reservations.append({
+                            "car": car,
+                            "lot_id": lot.id,
+                            "spot_id": spot_id,
+                            "driver": driver,
+                            "driver_mobile": driver_mobile,
+                            "start_time": now,
+                            "end_time": end_time
+                        })
+
+                        # update availability trackers
                         car_next_free[car] = end_time
-                    else:
-                        car_next_free[car] = datetime.datetime.combine(
-                            date + datetime.timedelta(days=1),
-                            datetime.time(8)
-                        )
-
-                    reservations.append({
-                        "date": str(date),
-                        "hour": hour,
-                        "spot": spot_no,
-                        "car": car,
-                        "driver": driver,
-                        "driver_mobile": driver_mobile,
-                        "start_time": (start_time),
-                        "end_time": (end_time) if end_time else None
-                    })
+                        spot_next_free[spot_id] = end_time
 
         return reservations
 
-    reservations = generate_reservations(no_of_back_days)
-    #no_users = len(names)
+    # Generate reservations using environment-driven days
+    reservations = generate_reservations_fixed(no_of_back_days)
+
+    # --------------- Insert reservations into DB ------------------
+    created_count = 0
     for r in reservations:
-        res = Reservation(
-        user_id= random.randint(1, no_users),
-        spot_id=r["spot"],
-        vehicle_number=r["car"],
-        start_time=r["start_time"],
-        end_time= r["end_time"] ,
-        driver_contact=r["driver_mobile"],
-        driver_name=r["driver"]
+        # Protect: skip if spot or car is in inconsistent state in DB (very unlikely)
+        spot = db.session.get(ParkingSpot, r["spot_id"])
+        lot = lots_db.get(r["lot_id"])
+
+        if not spot or not lot:
+            continue
+
+        # Create reservation row
+        reservation = Reservation(
+            user_id=random.choice(regular_user_ids) if regular_user_ids else None,
+            spot_id=spot.id,
+            vehicle_number=r["car"],
+            driver_contact=r["driver_mobile"],
+            driver_name=r["driver"],
+            start_time=r["start_time"],
+            end_time=r["end_time"]
         )
-        slot = db.session.get(ParkingSpot, res.spot_id)
-        if res.end_time is None:
-            slot.status = "O"
-            res.parking_fee = None
+
+        # Compute fee if ended
+        if r["end_time"] is None:
+            spot.status = "O"
+            reservation.parking_fee = None
         else:
-            slot.status = "A"
-            delta = res.end_time - res.start_time
-            hours = delta.total_seconds() / 3600
-            fee = round(hours * 10, 2)  # Assuming a rate of 10 per hour
-            res.parking_fee = fee
-        db.session.add(res)
-        db.session.flush()
-        db.session.commit()
+            spot.status = "A"
+            delta = r["end_time"] - r["start_time"]
+            hours = delta.total_seconds() / 3600.0
+            # Fee uses the lot's price (as requested)
+            rate = lot.price if lot and getattr(lot, "price", None) is not None else 10.0
+            reservation.parking_fee = round(hours * rate, 2)
 
-    print("Job Done")
+        db.session.add(reservation)
+        # No immediate commit — commit in bulk after loop
+        created_count += 1
 
-            
-
-
-
-
-    #         start_time=datetime.strptime(r["start_time"], "%Y-%m-%d %H:%M:%S"),
-    #         end_time= datetime.strptime(r["end_time"], "%Y-%m-%d %H:%M:%S") if r["end_time"] else None,
-    #         driver_contact=f"{r['telephone']}",
-    #         driver_name= r["name"],
-
-    #     )
-    #     if reservation.end_time is None:
-    #         spot.status = "O"
-    #         reservation.parking_fee = None
-    #     else:
-    #         delta = reservation.end_time - reservation.start_time
-    #         hours = delta.total_seconds() / 3600
-    #         fee = round(hours * 10, 2)  # Assuming a rate of 10 per hour
-    #         reservation.parking_fee = fee
-    #     db.session.add(reservation)
-
-    # db.session.commit()
-    # print("✅ Database initialized with dummy data!")
+    db.session.commit()
+    print(f"Seeding complete — inserted {created_count} reservations.")

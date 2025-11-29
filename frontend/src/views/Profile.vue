@@ -11,7 +11,10 @@
 <script setup>
 import UserProfileModal from '../components/UserProfileModal.vue';
 import { ref, onMounted } from "vue";
-import { useAuth } from "../stores/auth";
+import { useAuthStore} from "../stores/auth";
+import { storeToRefs } from "pinia";
+const auth = useAuthStore();
+const { isLoggedIn, isAdmin, userName, userId: uid, token } = storeToRefs(auth);
 
 const userId = ref();
 const show = ref(false);
@@ -21,7 +24,7 @@ let currentUserIsAdmin = ref(false);
 
 onMounted(() => {
 
-  const { isAdmin, userName, userId: uid } = useAuth()
+  // const { isAdmin, userName, userId: uid } = useAuthStore()
 
   userId.value = parseInt(uid.value)
   currentUserIsAdmin.value = isAdmin.value

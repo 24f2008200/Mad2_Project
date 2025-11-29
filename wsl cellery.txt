@@ -1,0 +1,7 @@
+source .venv/bin/activate
+
+python3 -m celery -A backend.celery_app:celery worker -l info
+ 
+python3 -m celery -A backend.celery_app:celery beat -l info 
+
+python3 -m celery -A backend.celery_app:celery multi start worker1 --beat -l info

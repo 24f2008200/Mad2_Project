@@ -1,0 +1,58 @@
+AdminTaskDashboard.vue
+ ├── Filters (select, date range, status)
+ ├── Indicators Row
+ │     ├── Worker Health (green/red pill)
+ │     ├── Queue Length
+ │     ├── Avg Duration
+ │     └── Success / Failure rate
+ ├── Tasks Table (paginated)
+       ├── progress bar
+       ├── status pill
+       ├── duration
+       └── worker name
+
+
+GET /api/tasks
+
+Query params:
+
+status=success|failed|running|pending
+
+worker=name
+
+limit=50
+
+page=1
+
+Returns:
+
+{
+  "tasks": [
+    {
+      "id": "98f123",
+      "name": "daily_reminder_runner",
+      "status": "SUCCESS",
+      "start_time": "2025-11-28T18:00:00",
+      "end_time": "2025-11-28T18:00:02",
+      "duration": 2.12,
+      "progress": 100,
+      "worker": "celery@worker1"
+    }
+  ],
+  "total": 120
+}
+
+
+GET /api/metrics
+
+Returns worker health and queue length.
+
+{
+  "workers": {
+    "celery@worker1": "online",
+    "celery@worker2": "offline"
+  },
+  "queue_length": 14,
+  "avg_task_duration": 3.2,
+  "success_rate": 0.93
+}

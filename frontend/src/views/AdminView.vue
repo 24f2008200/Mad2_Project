@@ -40,8 +40,13 @@ const userCols = [
   { key: "mobile", label: "Mobile", type: "number" },
   { key: "address", label: "Address", type: "text" },
   { key: "email", label: "E-Mail", type: "text" },
-  { key: "rev", label: "Revenue" },
+  { key: "billing", label: "Revenue" },
   { key: "last_login", label: "Last Seen" },
+  {key:"received_reminders", label:"Reminders Sent", noshow: true},
+  {key:"reminder_time", label:"Reminder Time", noshow: true},
+  {key:"google_chat_webhook", label:"Google Chat Webhook", noshow: true},
+  {key:"password", label:"Password",type: "password", noshow: true},
+
   { key: "edit", label: "Edit", type: "action" },
 ];
 
@@ -56,14 +61,15 @@ const reservationCols = [
   { key: "driver_name", label: "Driver", type: "text" },
   { key: "driver_contact", label: "Contact", type: "number" },
   { key: "total_earnings", label: "Revenue", type: "number" },
-  { key: "edit", label: "Edit", type: "action" },
+  { key: "edit", label: "Edit", type: "action" , noshow: true},
 ];
 const lotCols = [
   { key: "id", label: "ID", filterType: "select", type: "noedit" },
   { key: "name", label: "Name", type: "text" },
   { key: "address", label: "Address", type: "text" },
-  { key: "available_spots", label: "Available", type: "number" },
-  { key: "occupied_spots", label: "Occupied", type: "number" },
+  { key: "number_of_spots", label: "Total Spots", type: "number" },
+  { key: "available_spots", label: "Available", type: "noedit" },
+  { key: "occupied_spots", label: "Occupied", type: "noedit" },
   { key: "price", label: "Price", type: "number" },
   { key: "edit", label: "Edit", type: "action" }
 ];
@@ -152,7 +158,39 @@ function saveChanges(updatedRow) {
   // Replace row in rows
   const idx = results.value.findIndex(r => r.id === updatedRow.id)
   if (idx !== -1) results.value[idx] = updatedRow
-
+  if (searchStore.opCode === 'user') {
+    if (updatedRow.password && updatedRow.password.trim() !== "") {
+    updatedRow.confirm_password = updatedRow.password;
+  }
+    const url = `/user/profile/${updatedRow.id}`;
+    apiClient.put(url, updatedRow).then(response => {
+      console.log("User updated successfully:", response.data);
+    }).catch(error => {
+      console.error("Error updating user:", error);
+    });
+  } else if (searchStore.opCode === 'lot') {
+    const url = `/admin/lots/${updatedRow.id}`;
+    apiClient.put(url, updatedRow).then(response => {
+      console.log("Lot updated successfully:", response.data);
+    }).catch(error => {
+      console.error("Error updating lot:", error);
+    });
+  } else if (searchStore.opCode === 'reservation') {
+    const url = `/admin/reservations/${updatedRow.id}`;
+    apiClient.put(url, updatedRow).then(response => {
+      console.log("Reservation updated successfully:", response.data);
+    }).catch(error => {
+      console.error("Error updating reservation:", error);
+    });
+  } else if (searchStore.opCode === 'reminder') {
+    const url = `/admin/reminders/${updatedRow.id}`;
+    apiClient.put(url, updatedRow).then(response => {
+      console.log("Reminder log updated successfully:", response.data);
+    }).catch(error => {
+      console.error("Error updating reminder log:", error);
+    });
+  }
+console.log("Saved changes:", updatedRow ,searchStore.opCode );  
   closeModal()
 }
 

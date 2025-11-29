@@ -14,15 +14,18 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted } from "vue";
-import { useAuth } from "../stores/auth";
+import { useAuthStore} from "../stores/auth";
 import { watch } from "vue";
 import { apiFetch } from "@/api";
 import DataTable from "@/components/DataTable.vue";
 import RowEditor from "@/components/RowEditor.vue";
 import { useSearchStore } from "../stores/search";
+import { storeToRefs } from "pinia";
+const auth = useAuthStore();
+const { isLoggedIn, isAdmin, userName, userId: uid, token } = storeToRefs(auth);
 
-import { Chart as ChartJS, Title, Tooltip, Legend, ArcElement, BarElement, LineElement, CategoryScale, LinearScale, PointElement } from "chart.js"
 import { Pie, Bar, Line } from "vue-chartjs"
+import { CategoryScale, LinearScale, BarElement, LineElement } from 'chart.js';
 
 import { useRoute } from "vue-router"
 
@@ -39,14 +42,14 @@ const resultColumns = [
 ];
 
 
-ChartJS.register(Title, Tooltip, Legend, ArcElement, BarElement, LineElement, CategoryScale, LinearScale, PointElement)
+// ChartJS.register(Title, Tooltip, Legend, ArcElement, BarElement, LineElement, CategoryScale, LinearScale, PointElement)
 
 const resultData = ref("")
 const revenueData = ref(null)
 const reservationData = ref(null)
 
 
-const { token } = useAuth();
+
 const summary = ref({});
 
 
